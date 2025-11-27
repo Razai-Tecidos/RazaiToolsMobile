@@ -31,12 +31,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    const handleAuthState = (session: Session | null) => {
+    const applySession = (sessionValue: Session | null) => {
       if (!mounted) return
-      setSession(session)
-      setUser(session?.user ?? null)
-      setRole((session?.user?.user_metadata?.role as UserRole) || 'collaborator')
-      setLoading(false)
+      setSession(sessionValue)
+      setUser(sessionValue?.user ?? null)
+    }
+
+    const loadRoleForSession = async (sessionValue: Session | null) => {
+      if (!mounted) return
+
+      if (!sessionValue?.user?.id) {
+        setRole(null)
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', sessionValue.user.id)
+          .single()
+
+        if (!mounted) return
+        if (error) {
+          console.error('Falha ao carregar role do usuário', error)
+          setRole('collaborator')
+        } else {
+          setRole((data?.role as UserRole) ?? 'collaborator')
+        }
+      } catch (err) {
+        if (mounted) {
+          console.error('Erro inesperado ao carregar role', err)
+          setRole('collaborator')
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    const handleAuthState = (sessionValue: Session | null) => {
+      applySession(sessionValue)
+      loadRoleForSession(sessionValue)
     }
 
     supabase.auth
@@ -51,8 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleAuthState(session)
+    } = supabase.auth.onAuthStateChange((_event, sessionValue) => {
+      handleAuthState(sessionValue)
     })
 
     return () => {
@@ -89,6 +128,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
+    setSession(null)
+    setUser(null)
+    setRole(null)
   }
 
   return (

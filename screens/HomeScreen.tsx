@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -14,6 +14,7 @@ export default function HomeScreen({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const shortcuts = [
     {
       id: 'stock',
@@ -119,6 +120,19 @@ export default function HomeScreen({ navigation }: any) {
     }
   }
 
+  const handleSignOut = useCallback(async () => {
+    try {
+      setSigningOut(true);
+      await signOut();
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    } catch (error) {
+      console.error('Erro ao sair', error);
+      Alert.alert('Erro ao sair', 'Tente novamente.');
+    } finally {
+      setSigningOut(false);
+    }
+  }, [navigation, signOut]);
+
   // Funções handleShortage e confirmShortage movidas para StockOutFlowScreen
 
   function renderSearchResult({ item }: { item: any }) {
@@ -157,7 +171,7 @@ export default function HomeScreen({ navigation }: any) {
                   <Text style={styles.heroTitle}>Operação Cutter</Text>
                   <Text style={styles.heroSubtitle}>Controle de estoque impecável com poucos toques.</Text>
                 </View>
-                <TouchableOpacity onPress={() => signOut()} style={styles.signOutBtn}>
+                <TouchableOpacity onPress={handleSignOut} disabled={signingOut} style={[styles.signOutBtn, signingOut && styles.signOutBtnDisabled]}>
                   <Ionicons name="log-out-outline" size={20} color={theme.colors.textInverse} />
                 </TouchableOpacity>
               </View>
@@ -320,6 +334,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
     padding: theme.spacing.sm,
     borderRadius: theme.radius.lg,
+  },
+  signOutBtnDisabled: {
+    opacity: 0.6,
   },
   heroActions: {
     marginBottom: theme.spacing.lg,
