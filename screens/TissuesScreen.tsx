@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Share, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../lib/supabase';
 import ShareSheet from '../components/ShareSheet';
 import { generateTissuePdf } from '../lib/pdf';
+import { SkeletonList } from '../components/Skeleton';
+import { theme } from '../lib/theme';
 
 import { useTissues } from '../hooks/useTissues';
 
@@ -54,7 +55,7 @@ export default function TissuesScreen({ navigation }: any) {
       </View>
       
       {loading ? (
-        <Text style={styles.loading}>Carregando...</Text>
+        <SkeletonList count={6} />
       ) : (
         <FlatList
           data={tissues}
@@ -64,6 +65,7 @@ export default function TissuesScreen({ navigation }: any) {
             <TouchableOpacity 
               style={styles.card}
               onPress={() => navigation.navigate('TissueDetails', { id: item.id })}
+              activeOpacity={0.7}
             >
               <View style={styles.cardContent}>
                 <View style={{ flex: 1 }}>
@@ -73,8 +75,9 @@ export default function TissuesScreen({ navigation }: any) {
                 <TouchableOpacity 
                   style={styles.shareBtn}
                   onPress={() => handleSharePress(item)}
+                  activeOpacity={0.6}
                 >
-                  <Ionicons name="share-social-outline" size={24} color="#2563eb" />
+                  <Ionicons name="share-social-outline" size={24} color={theme.colors.primary} />
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -93,7 +96,7 @@ export default function TissuesScreen({ navigation }: any) {
       {generating && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#fff" />
-          <Text style={{ color: '#fff', marginTop: 10 }}>Gerando PDF...</Text>
+          <Text style={styles.loadingText}>Gerando PDF...</Text>
         </View>
       )}
     </SafeAreaView>
@@ -103,47 +106,38 @@ export default function TissuesScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   header: {
-    padding: 20,
-    backgroundColor: '#fff',
+    padding: theme.spacing.xl,
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.colors.border,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: theme.font.sizes.xl,
+    fontWeight: theme.font.weights.bold,
+    color: theme.colors.text,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    fontSize: theme.font.sizes.sm,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
   },
   list: {
-    padding: 16,
-  },
-  loading: {
-    textAlign: 'center',
-    marginTop: 40,
-    color: '#666',
+    padding: theme.spacing.lg,
   },
   empty: {
     textAlign: 'center',
-    marginTop: 40,
-    color: '#999',
+    marginTop: theme.spacing.xxxl,
+    color: theme.colors.textMuted,
   },
   card: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.lg,
+    borderRadius: theme.radius.lg,
+    marginBottom: theme.spacing.md,
+    ...theme.shadow.sm,
   },
   cardContent: {
     flexDirection: 'row',
@@ -151,24 +145,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    fontSize: theme.font.sizes.base,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
   },
   cardSubtitle: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: theme.font.sizes.sm,
+    color: theme.colors.textSecondary,
   },
   shareBtn: {
-    padding: 8,
+    padding: theme.spacing.sm,
   },
   loadingOverlay: {
     position: 'absolute',
-    inset: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 100,
+  },
+  loadingText: {
+    color: theme.colors.textInverse,
+    marginTop: theme.spacing.md,
   },
 });

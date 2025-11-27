@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../lib/theme';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !pass) {
@@ -28,43 +31,72 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Razai Mobile</Text>
-        <Text style={styles.subtitle}>Faça login para continuar</Text>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <View style={styles.content}>
+          {/* Logo Section */}
+          <View style={styles.logoSection}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoText}>R</Text>
+            </View>
+            <Text style={styles.title}>Razai Mobile</Text>
+            <Text style={styles.subtitle}>Faça login para continuar</Text>
+          </View>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="seu@email.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
+          <View style={styles.form}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="seu@email.com"
+              placeholderTextColor={theme.colors.textMuted}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
 
-          <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Sua senha"
-            value={pass}
-            onChangeText={setPass}
-            secureTextEntry
-          />
+            <Text style={styles.label}>Senha</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Sua senha"
+                placeholderTextColor={theme.colors.textMuted}
+                value={pass}
+                onChangeText={setPass}
+                secureTextEntry={!showPassword}
+                autoComplete="password"
+              />
+              <Pressable 
+                onPress={() => setShowPassword(!showPassword)} 
+                style={styles.eyeButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons 
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
+                  size={22} 
+                  color={theme.colors.textSecondary} 
+                />
+              </Pressable>
+            </View>
 
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]} 
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Entrar</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.button, loading && styles.buttonDisabled]} 
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.7}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Entrar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -72,57 +104,96 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.background,
+  },
+  keyboardView: {
+    flex: 1,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: theme.spacing.xxl,
+  },
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: theme.spacing.xxxl,
+  },
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+    ...theme.shadow.md,
+  },
+  logoText: {
+    fontSize: 36,
+    fontWeight: theme.font.weights.bold,
+    color: theme.colors.textInverse,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#0f172a',
+    fontSize: theme.font.sizes.display,
+    fontWeight: theme.font.weights.bold,
+    color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#64748b',
+    fontSize: theme.font.sizes.base,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 48,
   },
   form: {
-    gap: 16,
+    gap: theme.spacing.md,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 4,
+    fontSize: theme.font.sizes.sm,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    color: '#0f172a',
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.lg,
+    fontSize: theme.font.sizes.base,
+    color: theme.colors.text,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: theme.spacing.lg,
+    fontSize: theme.font.sizes.base,
+    color: theme.colors.text,
+  },
+  eyeButton: {
+    padding: theme.spacing.lg,
   },
   button: {
-    backgroundColor: '#2563eb',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.lg,
+    borderRadius: theme.radius.md,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: theme.spacing.lg,
+    ...theme.shadow.sm,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.font.sizes.base,
+    fontWeight: theme.font.weights.semibold,
   },
 });

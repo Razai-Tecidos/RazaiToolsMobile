@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { theme } from '../lib/theme';
 
 type LinkCardProps = {
   item: any;
@@ -13,7 +14,7 @@ export default function LinkCard({ item, onPress }: LinkCardProps) {
     : null;
 
   return (
-    <TouchableOpacity style={styles.resultItem} onPress={onPress}>
+    <TouchableOpacity style={styles.resultItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.thumbnailContainer}>
         {imageUrl ? (
           <Image 
@@ -41,24 +42,20 @@ export default function LinkCard({ item, onPress }: LinkCardProps) {
 const styles = StyleSheet.create({
   resultItem: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    marginBottom: theme.spacing.md,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    ...theme.shadow.sm,
   },
   thumbnailContainer: {
     width: 48,
     height: 48,
-    borderRadius: 8,
+    borderRadius: theme.radius.sm,
     overflow: 'hidden',
-    marginRight: 12,
-    backgroundColor: '#eee',
+    marginRight: theme.spacing.md,
+    backgroundColor: theme.colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -74,26 +71,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   resultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: theme.font.sizes.base,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
     marginBottom: 2,
   },
   resultColor: {
-    fontWeight: '400',
-    color: '#666',
+    fontWeight: theme.font.weights.regular,
+    color: theme.colors.textSecondary,
   },
   resultSku: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: theme.font.sizes.xs,
+    color: theme.colors.textMuted,
     fontFamily: 'monospace',
   },
   arrow: {
-    marginLeft: 8,
+    marginLeft: theme.spacing.sm,
   },
   arrowText: {
     fontSize: 20,
-    color: '#ccc',
+    color: theme.colors.border,
     fontWeight: '300',
   }
 });

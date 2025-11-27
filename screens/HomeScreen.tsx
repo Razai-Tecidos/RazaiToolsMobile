@@ -4,6 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { theme } from '../lib/theme';
+import { Skeleton } from '../components/Skeleton';
+import LinkCard from '../components/LinkCard';
 
 export default function HomeScreen({ navigation }: any) {
   const { signOut } = useAuth();
@@ -212,7 +215,7 @@ export default function HomeScreen({ navigation }: any) {
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
               {loading ? (
-                <ActivityIndicator color="#2563eb" />
+                <Skeleton width={60} height={28} />
               ) : (
                 <Text style={styles.statNumber}>{stats.tissues}</Text>
               )}
@@ -220,7 +223,7 @@ export default function HomeScreen({ navigation }: any) {
             </View>
             <View style={styles.statCard}>
               {loading ? (
-                <ActivityIndicator color="#2563eb" />
+                <Skeleton width={60} height={28} />
               ) : (
                 <Text style={styles.statNumber}>{stats.colors}</Text>
               )}
@@ -231,15 +234,17 @@ export default function HomeScreen({ navigation }: any) {
           <TouchableOpacity 
             style={styles.button}
             onPress={() => navigation.navigate('Tecidos')}
+            activeOpacity={0.7}
           >
             <Text style={styles.buttonText}>Ver Tecidos</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.button, { marginTop: 16, backgroundColor: cutterMode ? '#dc2626' : '#fff', borderWidth: 1, borderColor: '#dc2626' }]}
+            style={[styles.button, { marginTop: 16, backgroundColor: cutterMode ? theme.colors.danger : theme.colors.surface, borderWidth: 1, borderColor: theme.colors.danger }]}
             onPress={() => setCutterMode(!cutterMode)}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.buttonText, { color: cutterMode ? '#fff' : '#dc2626' }]}>
+            <Text style={[styles.buttonText, { color: cutterMode ? theme.colors.textInverse : theme.colors.danger }]}>
               {cutterMode ? 'Cancelar Aviso de Falta' : '✂️ Avisar Falta de Tecido'}
             </Text>
           </TouchableOpacity>
@@ -258,27 +263,29 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.modalSubtitle}>{selectedItem?.tissues?.name} - {selectedItem?.colors?.name}</Text>
             
             <View style={styles.counterContainer}>
-              <TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))} style={styles.counterButton}>
+              <TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))} style={styles.counterButton} activeOpacity={0.7}>
                 <Text style={styles.counterButtonText}>-</Text>
               </TouchableOpacity>
               <Text style={styles.counterValue}>{quantity}</Text>
-              <TouchableOpacity onPress={() => setQuantity(quantity + 1)} style={styles.counterButton}>
+              <TouchableOpacity onPress={() => setQuantity(quantity + 1)} style={styles.counterButton} activeOpacity={0.7}>
                 <Text style={styles.counterButtonText}>+</Text>
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity 
-              style={[styles.button, { backgroundColor: '#2563eb', marginBottom: 12 }]}
+              style={[styles.button, { backgroundColor: theme.colors.primary, marginBottom: 12 }]}
               onPress={() => confirmShortage('QTY')}
+              activeOpacity={0.7}
             >
               <Text style={styles.buttonText}>Confirmar Saída ({quantity})</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.button, { backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#ef4444' }]}
+              style={[styles.button, { backgroundColor: theme.colors.dangerLight, borderWidth: 1, borderColor: theme.colors.danger }]}
               onPress={() => confirmShortage('ZERO')}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.buttonText, { color: '#dc2626' }]}>ACABOU TUDO (0)</Text>
+              <Text style={[styles.buttonText, { color: theme.colors.danger }]}>ACABOU TUDO (0)</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
