@@ -465,13 +465,14 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: theme.spacing.md,
   },
   selectionDetails: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: theme.spacing.md,
   },
   selectionLabel: {
@@ -501,6 +502,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.primary,
     backgroundColor: theme.colors.surfaceAlt,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
   },
   selectionButtonText: {
     color: theme.colors.primary,
