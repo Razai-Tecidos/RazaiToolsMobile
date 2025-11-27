@@ -46,16 +46,15 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>Usuário</Text>
             <TextInput
               style={styles.input}
-              placeholder="seu@email.com"
+              placeholder="seu nome de usuário"
               placeholderTextColor={theme.colors.textMuted}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
+              autoCorrect={false}
             />
 
             <Text style={styles.label}>Senha</Text>

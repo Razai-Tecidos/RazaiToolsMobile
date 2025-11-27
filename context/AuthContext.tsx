@@ -50,9 +50,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, pass: string) => {
+  const signIn = async (username: string, pass: string) => {
+    let emailToUse = username
+    
+    // Se não parece um email, buscar o email pelo username
+    if (!username.includes('@')) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username.toLowerCase())
+        .single()
+      
+      if (profileError || !profile) {
+        return { data: null, error: { message: 'Usuário não encontrado' } }
+      }
+      
+      // Usar o padrão: username@razai.local
+      emailToUse = `${username.toLowerCase()}@razai.local`
+    }
+    
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: emailToUse,
       password: pass,
     })
     return { data, error }
