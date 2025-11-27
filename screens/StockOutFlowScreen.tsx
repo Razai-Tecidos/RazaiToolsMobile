@@ -25,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { theme } from '../lib/theme';
+import { linkService } from '../lib/services/linkService';
 
 // Types
 interface Tissue {
@@ -57,6 +58,12 @@ interface Props {
 }
 
 export default function StockOutFlowScreen({ navigation }: Props) {
+    function resolveLinkImage(imagePath: string | null | undefined): string | null {
+      if (!imagePath) return null;
+      if (/^https?:\/\//i.test(imagePath)) return imagePath;
+      return linkService.getImageUrl(imagePath);
+    }
+
   // Flow state
   const [currentStep, setCurrentStep] = useState<Step>('tissue');
   
@@ -124,7 +131,11 @@ export default function StockOutFlowScreen({ navigation }: Props) {
         .order('sku_filho');
       
       if (error) throw error;
-      setLinks(data || []);
+      const normalizedLinks = (data || []).map((link) => ({
+        ...link,
+        colors: Array.isArray(link.colors) ? link.colors[0] : link.colors,
+      })) as LinkWithStock[];
+      setLinks(normalizedLinks);
     } catch (err) {
       console.error('Erro ao carregar cores:', err);
       Alert.alert('Erro', 'Não foi possível carregar as cores');
@@ -336,9 +347,9 @@ export default function StockOutFlowScreen({ navigation }: Props) {
                 >
                   {/* Image */}
                   <View style={styles.colorImageContainer}>
-                    {item.image_path ? (
+                    {resolveLinkImage(item.image_path) ? (
                       <Image
-                        source={{ uri: item.image_path }}
+                        source={{ uri: resolveLinkImage(item.image_path) as string }}
                         style={styles.colorImage}
                         resizeMode="cover"
                       />
@@ -392,9 +403,9 @@ export default function StockOutFlowScreen({ navigation }: Props) {
         {/* Selected item info */}
         <View style={styles.selectedItemCard}>
           <View style={styles.selectedImageContainer}>
-            {selectedLink?.image_path ? (
+            {resolveLinkImage(selectedLink?.image_path) ? (
               <Image
-                source={{ uri: selectedLink.image_path }}
+                source={{ uri: resolveLinkImage(selectedLink?.image_path) as string }}
                 style={styles.selectedImage}
                 resizeMode="cover"
               />
@@ -500,9 +511,9 @@ export default function StockOutFlowScreen({ navigation }: Props) {
             {/* Item info with image */}
             <View style={styles.modalItemInfo}>
               <View style={styles.modalImageContainer}>
-                {selectedLink?.image_path ? (
+                {resolveLinkImage(selectedLink?.image_path) ? (
                   <Image
-                    source={{ uri: selectedLink.image_path }}
+                    source={{ uri: resolveLinkImage(selectedLink?.image_path) as string }}
                     style={styles.modalImage}
                     resizeMode="cover"
                   />

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,14 +8,25 @@ import * as Sharing from 'expo-sharing';
 import ShareSheet from '../components/ShareSheet';
 
 import { useTissues } from '../hooks/useTissues';
+import { theme } from '../lib/theme';
 
 const WEB_APP_URL = 'https://razai-colaborador.vercel.app';
+
+function getInitials(name: string) {
+  if (!name) return '??';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
 
 export default function CatalogScreen() {
   const { data: tissues = [], isLoading: loading } = useTissues();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  const selectedCount = selectedIds.size;
+  const totalTissues = tissues.length;
+  const allSelected = totalTissues > 0 && selectedCount === totalTissues;
 
   function toggleSelection(id: string) {
     const next = new Set(selectedIds);
@@ -28,11 +39,11 @@ export default function CatalogScreen() {
   }
 
   function toggleSelectAll() {
-    if (selectedIds.size === tissues.length) {
+    if (allSelected) {
       setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(tissues.map(t => t.id)));
+      return;
     }
+    setSelectedIds(new Set(tissues.map(t => t.id)));
   }
 
   async function handleSharePdf() {
@@ -81,32 +92,31 @@ export default function CatalogScreen() {
       const sectionsHtml = Array.from(grouped.values()).map((group, index) => {
         const { tissue, links } = group;
         return `
-          <div class="tissue-section" style="${index > 0 ? 'page-break-before: always;' : ''}">
-            <div class="header">
+          <section class="tissue-section" style="${index > 0 ? 'page-break-before: always;' : ''}">
+            <header class="section-header">
+              <div class="brand-pill">RAZAI</div>
               <div>
-                <div class="brand">RAZAI</div>
-                <h1 class="title">${tissue.name}</h1>
-                <div class="meta">
-                  Largura: ${tissue.width} cm • Composição: ${tissue.composition || 'N/A'}
-                </div>
+                <p class="eyebrow">Coleção exclusiva • ${links.length} variações</p>
+                <h1>${tissue.name}</h1>
+                <p class="meta">Largura ${tissue.width || '—'} cm · ${tissue.composition || 'Composição não informada'}</p>
               </div>
-            </div>
-
+            </header>
             <div class="grid">
               ${links.map(l => `
-                <div class="card">
-                  <div class="image-container">
-                    ${l.imageUrl 
-                      ? `<img src="${l.imageUrl}" />` 
-                      : `<div class="color-placeholder" style="background-color: ${l.colors?.hex || '#eee'}"></div>`
-                    }
+                <article class="color-card">
+                  <div class="thumb">
+                    ${l.imageUrl
+                      ? `<img src="${l.imageUrl}" />`
+                      : `<div class="swatch" style="background:${l.colors?.hex || '#d1d5db'}"></div>`}
                   </div>
-                  <div class="info-name">${l.colors?.name}</div>
-                  <div class="info-sku">${l.sku_filho}</div>
-                </div>
+                  <div class="color-info">
+                    <strong>${l.colors?.name || 'Sem nome'}</strong>
+                    <span>${l.sku_filho}</span>
+                  </div>
+                </article>
               `).join('')}
             </div>
-          </div>
+          </section>
         `;
       }).join('');
 
@@ -116,76 +126,99 @@ export default function CatalogScreen() {
         <head>
           <meta charset="utf-8">
           <style>
-            @page { margin: 0; size: A4; }
-            body { 
-              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
-              margin: 0; 
-              padding: 40px; 
-              color: #111;
+            @page { size: A4; margin: 32pt; }
+            * { box-sizing: border-box; }
+            body {
+              font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+              margin: 0;
+              background: #f8fafc;
+              color: #0f172a;
+            }
+            section.tissue-section {
               background: #fff;
+              border-radius: 16px;
+              padding: 32px;
+              box-shadow: 0 20px 60px rgba(15,23,42,0.08);
+              margin-bottom: 24px;
             }
-            .tissue-section {
-              margin-bottom: 40px;
-            }
-            .header {
-              margin-bottom: 30px;
-              border-bottom: 1px solid #eee;
+            section.tissue-section header {
+              display: flex;
+              align-items: center;
+              gap: 24px;
+              margin-bottom: 28px;
+              border-bottom: 1px solid #e2e8f0;
               padding-bottom: 20px;
             }
-            .brand {
-              font-size: 12px;
-              letter-spacing: 2px;
+            .brand-pill {
+              font-size: 14px;
+              font-weight: 700;
+              letter-spacing: 0.3em;
               text-transform: uppercase;
-              font-weight: bold;
-              color: #000;
+              color: #0f172a;
+              padding: 8px 14px;
+              border-radius: 999px;
+              border: 1px solid #e2e8f0;
             }
-            .title {
-              font-size: 32px;
-              font-weight: 300;
+            .eyebrow {
+              text-transform: uppercase;
+              font-size: 11px;
+              letter-spacing: 0.2em;
               margin: 0;
-              margin-top: 10px;
+              color: #64748b;
+            }
+            header h1 {
+              font-size: 34px;
+              margin: 6px 0 4px;
+              font-weight: 600;
             }
             .meta {
-              font-size: 12px;
-              color: #666;
-              margin-top: 8px;
+              font-size: 13px;
+              color: #475569;
             }
             .grid {
               display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 20px;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              gap: 18px;
             }
-            .card {
-              break-inside: avoid;
-              page-break-inside: avoid;
-              margin-bottom: 20px;
+            .color-card {
+              background: #f8fafc;
+              border-radius: 14px;
+              padding: 14px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              border: 1px solid #e2e8f0;
             }
-            .image-container {
+            .thumb {
               width: 100%;
-              aspect-ratio: 1;
-              background-color: #f5f5f5;
-              border-radius: 4px;
+              aspect-ratio: 1/1;
+              border-radius: 12px;
               overflow: hidden;
-              margin-bottom: 8px;
+              background: #e2e8f0;
             }
-            img {
+            .thumb img {
               width: 100%;
               height: 100%;
               object-fit: cover;
+              display: block;
             }
-            .color-placeholder {
+            .swatch {
               width: 100%;
               height: 100%;
             }
-            .info-name {
-              font-size: 14px;
-              font-weight: 500;
-              margin-bottom: 2px;
+            .color-info {
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
             }
-            .info-sku {
-              font-size: 11px;
-              color: #999;
-              font-family: monospace;
+            .color-info strong {
+              font-size: 15px;
+            }
+            .color-info span {
+              font-size: 12px;
+              letter-spacing: 0.08em;
+              color: #64748b;
+              font-family: 'Space Mono', monospace;
             }
           </style>
         </head>
@@ -217,67 +250,141 @@ export default function CatalogScreen() {
       console.error(error);
     }
   }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={styles.title}>Catálogo</Text>
-            <Text style={styles.subtitle}>Selecione os tecidos para exportar</Text>
+  const renderHeader = () => (
+    <View style={styles.listHeader}>
+      <View style={styles.heroCard}>
+        <View style={styles.heroTop}>
+          <Text style={styles.heroBadge}>Coleção Razai</Text>
+          <View style={styles.heroIcons}>
+            <Ionicons name="document-text-outline" size={18} color="rgba(255,255,255,0.8)" />
+            <Ionicons name="share-social-outline" size={18} color="rgba(255,255,255,0.8)" />
           </View>
-          <TouchableOpacity onPress={toggleSelectAll} style={styles.selectAllBtn}>
-            <Text style={styles.selectAllText}>
-              {selectedIds.size === tissues.length ? 'Desmarcar' : 'Todos'}
-            </Text>
-          </TouchableOpacity>
+        </View>
+        <Text style={styles.heroTitle}>Catálogo premium</Text>
+        <Text style={styles.heroSubtitle}>
+          Monte uma curadoria elegante e compartilhe como PDF ou vitrine responsiva.
+        </Text>
+        <View style={styles.heroChips}>
+          <View style={styles.heroChip}>
+            <Ionicons name="sparkles-outline" size={14} color="#fff" />
+            <Text style={styles.heroChipText}>PDF com branding</Text>
+          </View>
+          <View style={styles.heroChip}>
+            <Ionicons name="link-outline" size={14} color="#fff" />
+            <Text style={styles.heroChipText}>Link compartilhável</Text>
+          </View>
         </View>
       </View>
 
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color="#2563eb" />
-      ) : (
-        <FlatList
-          data={tissues}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
-          renderItem={({ item }) => {
-            const selected = selectedIds.has(item.id);
-            return (
-              <TouchableOpacity 
-                style={[styles.card, selected && styles.cardSelected]} 
-                onPress={() => toggleSelection(item.id)}
-              >
-                <View style={styles.cardInfo}>
-                  <Text style={[styles.cardTitle, selected && styles.textSelected]}>{item.name}</Text>
-                  <Text style={[styles.cardSubtitle, selected && styles.textSelected]}>{item.sku}</Text>
-                </View>
-                <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
-                  {selected && <Ionicons name="checkmark" size={16} color="#fff" />}
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-        />
-      )}
-
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.button, selectedIds.size === 0 && styles.buttonDisabled]}
-          disabled={selectedIds.size === 0 || generating}
-          onPress={() => setShareModalVisible(true)}
-        >
-          {generating ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>
-              Exportar ({selectedIds.size})
-            </Text>
-          )}
+      <View style={styles.selectionPanel}>
+        <View style={styles.selectionDetails}>
+          <View>
+            <Text style={styles.selectionLabel}>Seleção ativa</Text>
+            <Text style={styles.selectionValue}>{selectedCount}</Text>
+          </View>
+          <View style={styles.selectionDivider} />
+          <View>
+            <Text style={styles.selectionLabel}>Tecidos totais</Text>
+            <Text style={styles.selectionValue}>{totalTissues}</Text>
+          </View>
+        </View>
+        <TouchableOpacity onPress={toggleSelectAll} style={styles.selectionButton} activeOpacity={0.9}>
+          <Ionicons name={allSelected ? 'close' : 'add'} size={16} color={theme.colors.primary} />
+          <Text style={styles.selectionButtonText}>{allSelected ? 'Limpar seleção' : 'Selecionar todos'}</Text>
         </TouchableOpacity>
       </View>
 
-      <ShareSheet 
+      {loading && (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Sincronizando catálogo…</Text>
+        </View>
+      )}
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={tissues}
+        keyExtractor={item => item.id}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={!loading ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="archive-outline" size={32} color={theme.colors.textSecondary} />
+            <Text style={styles.emptyTitle}>Nenhum tecido cadastrado</Text>
+            <Text style={styles.emptySubtitle}>Os lançamentos aparecerão aqui para compor o PDF premium.</Text>
+          </View>
+        ) : null}
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item }) => {
+          const selected = selectedIds.has(item.id);
+          const initials = getInitials(item.name);
+          const widthLabel = item.width ? `${item.width} cm` : 'Largura flexível';
+          const compositionLabel = item.composition || 'Composição não informada';
+
+          return (
+            <TouchableOpacity
+              style={[styles.catalogCard, selected && styles.catalogCardSelected]}
+              onPress={() => toggleSelection(item.id)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.monogram, selected && styles.monogramSelected]}>
+                  <Text style={[styles.monogramText, selected && styles.monogramTextSelected]}>{initials}</Text>
+                </View>
+                <View style={styles.cardTitleGroup}>
+                  <Text style={styles.catalogTitle}>{item.name}</Text>
+                  <Text style={styles.catalogSubtitle}>{item.sku}</Text>
+                </View>
+                <View style={[styles.selectionBadge, selected && styles.selectionBadgeActive]}>
+                  <Ionicons
+                    name={selected ? 'checkmark' : 'add'}
+                    size={14}
+                    color={selected ? theme.colors.textInverse : theme.colors.textSecondary}
+                  />
+                </View>
+              </View>
+              <View style={styles.cardFooter}>
+                <View style={styles.metaPill}>
+                  <Ionicons name="resize-outline" size={14} color={theme.colors.textSecondary} />
+                  <Text style={styles.metaPillText}>{widthLabel}</Text>
+                </View>
+                <View style={styles.metaPill}>
+                  <Ionicons name="color-palette-outline" size={14} color={theme.colors.textSecondary} />
+                  <Text style={styles.metaPillText} numberOfLines={1}>{compositionLabel}</Text>
+                </View>
+              </View>
+              <Text style={styles.hintText}>
+                Toque para {selected ? 'remover da' : 'adicionar à'} seleção premium.
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      />
+
+      <View style={styles.footer}>
+        <Text style={styles.footerLabel}>Entrega personalizada</Text>
+        <TouchableOpacity
+          style={[styles.button, (selectedCount === 0 || generating) && styles.buttonDisabled]}
+          disabled={selectedCount === 0 || generating}
+          onPress={() => setShareModalVisible(true)}
+          activeOpacity={0.9}
+        >
+          {generating ? (
+            <ActivityIndicator color={theme.colors.textInverse} />
+          ) : (
+            <View style={styles.buttonContent}>
+              <Ionicons name="share-outline" size={18} color={theme.colors.textInverse} />
+              <Text style={styles.buttonText}>Compartilhar seleção ({selectedCount})</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.footerHint}>Abriremos opções para PDF premium e vitrine compartilhável.</Text>
+      </View>
+
+      <ShareSheet
         visible={shareModalVisible}
         onClose={() => setShareModalVisible(false)}
         onSharePdf={handleSharePdf}
@@ -291,107 +398,274 @@ export default function CatalogScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
-  header: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  listHeader: {
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.md,
+    gap: theme.spacing.lg,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+  heroCard: {
+    backgroundColor: '#0f172a',
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xl,
+    ...theme.shadow.md,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+  heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
   },
-  selectAllBtn: {
-    padding: 8,
-    backgroundColor: '#f0f9ff',
-    borderRadius: 8,
+  heroBadge: {
+    fontSize: theme.font.sizes.xs,
+    letterSpacing: 4,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+    fontWeight: theme.font.weights.semibold,
   },
-  selectAllText: {
-    color: '#2563eb',
-    fontWeight: '600',
+  heroIcons: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
   },
-  list: {
-    padding: 16,
-    paddingBottom: 100,
+  heroTitle: {
+    fontSize: theme.font.sizes.display,
+    fontWeight: theme.font.weights.bold,
+    color: '#fff',
   },
-  card: {
+  heroSubtitle: {
+    fontSize: theme.font.sizes.sm,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: theme.spacing.xs,
+    lineHeight: 20,
+  },
+  heroChips: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.lg,
+  },
+  heroChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    gap: theme.spacing.xs,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+  },
+  heroChipText: {
+    color: '#fff',
+    fontSize: theme.font.sizes.xs,
+    fontWeight: theme.font.weights.medium,
+  },
+  selectionPanel: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.lg,
     borderWidth: 1,
-    borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderColor: theme.colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  cardSelected: {
-    borderColor: '#2563eb',
-    backgroundColor: '#eff6ff',
+  selectionDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
   },
-  cardInfo: {
-    flex: 1,
+  selectionLabel: {
+    fontSize: theme.font.sizes.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: theme.colors.textSecondary,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+  selectionValue: {
+    fontSize: theme.font.sizes.xl,
+    fontWeight: theme.font.weights.bold,
+    color: theme.colors.text,
+    marginTop: 2,
   },
-  cardSubtitle: {
-    fontSize: 14,
-    color: '#666',
+  selectionDivider: {
+    width: 1,
+    height: 42,
+    backgroundColor: theme.colors.border,
   },
-  textSelected: {
-    color: '#2563eb',
+  selectionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceAlt,
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#ddd',
+  selectionButtonText: {
+    color: theme.colors.primary,
+    fontSize: theme.font.sizes.sm,
+    fontWeight: theme.font.weights.semibold,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+  },
+  loadingText: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.font.sizes.sm,
+  },
+  listContent: {
+    paddingBottom: 180,
+  },
+  catalogCard: {
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    padding: theme.spacing.lg,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    ...theme.shadow.sm,
+  },
+  catalogCardSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  monogram: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 16,
+    marginRight: theme.spacing.md,
   },
-  checkboxSelected: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+  monogramSelected: {
+    backgroundColor: theme.colors.primary,
+  },
+  monogramText: {
+    fontSize: theme.font.sizes.md,
+    fontWeight: theme.font.weights.bold,
+    color: theme.colors.text,
+  },
+  monogramTextSelected: {
+    color: theme.colors.textInverse,
+  },
+  cardTitleGroup: {
+    flex: 1,
+  },
+  catalogTitle: {
+    fontSize: theme.font.sizes.lg,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
+  },
+  catalogSubtitle: {
+    fontSize: theme.font.sizes.sm,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  selectionBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectionBadgeActive: {
+    backgroundColor: theme.colors.text,
+    borderColor: theme.colors.text,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surfaceAlt,
+    flex: 1,
+  },
+  metaPillText: {
+    fontSize: theme.font.sizes.xs,
+    color: theme.colors.textSecondary,
+    flexShrink: 1,
+  },
+  hintText: {
+    marginTop: theme.spacing.md,
+    fontSize: theme.font.sizes.xs,
+    color: theme.colors.textSecondary,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+    gap: theme.spacing.sm,
+  },
+  emptyTitle: {
+    fontSize: theme.font.sizes.lg,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
+  },
+  emptySubtitle: {
+    fontSize: theme.font.sizes.sm,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
   },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
-    backgroundColor: '#fff',
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: theme.colors.border,
+    gap: theme.spacing.sm,
+  },
+  footerLabel: {
+    fontSize: theme.font.sizes.sm,
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   button: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.xl,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: theme.colors.border,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.font.sizes.md,
+    fontWeight: theme.font.weights.semibold,
+  },
+  footerHint: {
+    fontSize: theme.font.sizes.xs,
+    color: theme.colors.textSecondary,
   },
 });

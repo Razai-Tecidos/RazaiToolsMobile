@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { View, ActivityIndicator } from 'react-native';
 
@@ -19,6 +19,9 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 12);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -30,13 +33,21 @@ function MainTabs() {
           } else if (route.name === 'Tecidos') {
             iconName = focused ? 'layers' : 'layers-outline';
           } else if (route.name === 'Catálogo') {
-            iconName = focused ? 'grid' : 'grid-outline';
+            iconName = focused ? 'book' : 'book-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: 'gray',
+        tabBarStyle: {
+          height: 56 + bottomPadding,
+          paddingBottom: bottomPadding,
+          paddingTop: 8,
+          borderTopWidth: 1,
+          borderTopColor: '#e5e7eb',
+          backgroundColor: '#fff',
+        },
         headerShown: false,
       })}
     >

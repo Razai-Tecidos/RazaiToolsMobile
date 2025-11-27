@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../lib/theme';
 import { Skeleton } from '../components/Skeleton';
-import LinkCard from '../components/LinkCard';
 
 export default function HomeScreen({ navigation }: any) {
   const { signOut } = useAuth();
@@ -15,7 +14,29 @@ export default function HomeScreen({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  // Removido: cutterMode, modalVisible, selectedItem, quantity - agora usa StockOutFlowScreen
+  const shortcuts = [
+    {
+      id: 'stock',
+      label: 'Registrar falta',
+      description: 'Fluxo guiado',
+      icon: 'alert-circle-outline' as const,
+      action: () => navigation.navigate('StockOutFlow'),
+    },
+    {
+      id: 'tissues',
+      label: 'Abrir tecidos',
+      description: 'Lista completa',
+      icon: 'layers-outline' as const,
+      action: () => navigation.navigate('Tecidos'),
+    },
+    {
+      id: 'catalog',
+      label: 'Ver catálogo',
+      description: 'Compartilhar PDF/Link',
+      icon: 'book-outline' as const,
+      action: () => navigation.navigate('Catálogo'),
+    },
+  ];
 
   useEffect(() => {
     fetchStats();
@@ -102,90 +123,155 @@ export default function HomeScreen({ navigation }: any) {
 
   function renderSearchResult({ item }: { item: any }) {
     return (
-      <LinkCard 
-        item={item} 
-        onPress={() => {
-          navigation.navigate('LinkDetails', { id: item.id });
-        }} 
-      />
+      <TouchableOpacity
+        style={styles.resultCard}
+        onPress={() => navigation.navigate('LinkDetails', { id: item.id })}
+      >
+        <View style={styles.resultBadge}>
+          <Text style={styles.resultBadgeText}>{item.tissues?.name?.slice(0, 1) || 'R'}</Text>
+        </View>
+        <View style={styles.resultContent}>
+          <Text style={styles.resultTitle}>{item.tissues?.name}</Text>
+          <Text style={styles.resultSubtitle}>{item.colors?.name} • {item.sku_filho}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
+      </TouchableOpacity>
     );
   }
 
+  const showResults = searchQuery.trim().length > 1;
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.title, { marginBottom: 0 }]}>Razai Mobile</Text>
-          <TouchableOpacity onPress={() => signOut()}>
-            <Ionicons name="log-out-outline" size={24} color="#666" />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar tecido, cor ou código..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            placeholderTextColor="#999"
-          />
-          {searching && <ActivityIndicator size="small" color="#2563eb" />}
-        </View>
-      </View>
-
-      {searchQuery.length > 0 ? (
-        <FlatList
-          data={searchResults}
-          keyExtractor={(item) => item.id}
-          renderItem={renderSearchResult}
-          contentContainerStyle={styles.resultsList}
-          ListEmptyComponent={
-            !searching ? <Text style={styles.emptyText}>Nenhum resultado encontrado.</Text> : null
-          }
-        />
-      ) : (
-        <View style={styles.content}>
-          <Text style={styles.subtitle}>Bem-vindo ao sistema de gestão</Text>
-
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              {loading ? (
-                <Skeleton width={60} height={28} />
-              ) : (
-                <Text style={styles.statNumber}>{stats.tissues}</Text>
-              )}
-              <Text style={styles.statLabel}>Tecidos</Text>
+      <FlatList
+        data={showResults ? searchResults : []}
+        keyExtractor={(item) => item.id}
+        renderItem={renderSearchResult}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={(
+          <>
+            <View style={styles.heroCard}>
+              <View style={styles.heroTop}>
+                <View>
+                  <Text style={styles.brandPill}>RAZAI</Text>
+                  <Text style={styles.heroTitle}>Operação Cutter</Text>
+                  <Text style={styles.heroSubtitle}>Controle de estoque impecável com poucos toques.</Text>
+                </View>
+                <TouchableOpacity onPress={() => signOut()} style={styles.signOutBtn}>
+                  <Ionicons name="log-out-outline" size={20} color={theme.colors.textInverse} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.heroActions}>
+                <TouchableOpacity style={styles.heroPrimary} onPress={() => navigation.navigate('StockOutFlow')}>
+                  <Ionicons name="cut" size={20} color={theme.colors.textInverse} />
+                  <View style={styles.heroPrimaryText}>
+                    <Text style={styles.heroPrimaryLabel}>Registrar falta</Text>
+                    <Text style={styles.heroPrimaryCaption}>Fluxo guiado em 3 passos</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.heroSecondary} onPress={() => navigation.navigate('Catálogo')}>
+                  <Ionicons name="book-outline" size={18} color={theme.colors.primary} />
+                  <Text style={styles.heroSecondaryLabel}>Abrir catálogo</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.statGrid}>
+                <View style={styles.statCard}>
+                  {loading ? (
+                    <Skeleton width={72} height={28} />
+                  ) : (
+                    <>
+                      <Text style={styles.statValue}>{stats.tissues}</Text>
+                      <Text style={styles.statLabel}>Tecidos</Text>
+                    </>
+                  )}
+                </View>
+                <View style={styles.statCard}>
+                  {loading ? (
+                    <Skeleton width={72} height={28} />
+                  ) : (
+                    <>
+                      <Text style={styles.statValue}>{stats.colors}</Text>
+                      <Text style={styles.statLabel}>Cores</Text>
+                    </>
+                  )}
+                </View>
+              </View>
             </View>
-            <View style={styles.statCard}>
-              {loading ? (
-                <Skeleton width={60} height={28} />
-              ) : (
-                <Text style={styles.statNumber}>{stats.colors}</Text>
-              )}
-              <Text style={styles.statLabel}>Cores</Text>
+
+            <View style={styles.shortcutSection}>
+              <Text style={styles.sectionTitle}>Acessos rápidos</Text>
+              <View style={styles.shortcutRow}>
+                {shortcuts.map((shortcut) => (
+                  <TouchableOpacity
+                    key={shortcut.id}
+                    style={styles.shortcutCard}
+                    onPress={shortcut.action}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.shortcutIconWrap}>
+                      <Ionicons name={shortcut.icon} size={18} color={theme.colors.primary} />
+                    </View>
+                    <Text style={styles.shortcutLabel}>{shortcut.label}</Text>
+                    <Text style={styles.shortcutCaption}>{shortcut.description}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
 
-          <TouchableOpacity 
-            style={styles.button}
-            onPress={() => navigation.navigate('Tecidos')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.buttonText}>Ver Tecidos</Text>
-          </TouchableOpacity>
+            <View style={styles.searchPanel}>
+              <View style={styles.searchHeader}>
+                <Text style={styles.sectionTitle}>Busca global</Text>
+                {searching && <ActivityIndicator size="small" color={theme.colors.primary} />}
+              </View>
+              <View style={styles.searchBar}>
+                <Ionicons name="search" size={18} color={theme.colors.textSecondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Digite código, tecido ou cor"
+                  placeholderTextColor={theme.colors.textSecondary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Ionicons name="close-circle" size={18} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {!showResults && (
+                <View style={styles.guidedCard}>
+                  <View style={styles.guidedIcon}>
+                    <Ionicons name="sparkles-outline" size={20} color={theme.colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.guidedTitle}>Tudo em um só lugar</Text>
+                    <Text style={styles.guidedCaption}>Pesquise por SKU, cor, tecido ou abra os atalhos acima.</Text>
+                  </View>
+                </View>
+              )}
+            </View>
 
-          <TouchableOpacity 
-            style={[styles.button, { marginTop: 16, backgroundColor: theme.colors.danger }]}
-            onPress={() => navigation.navigate('StockOutFlow')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.buttonText}>
-              ✂️ Avisar Falta de Tecido
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+            {!showResults && (
+              <View style={styles.emptyState}>
+                <Ionicons name="information-circle-outline" size={28} color={theme.colors.primary} />
+                <Text style={styles.emptyStateTitle}>Pronto para operar</Text>
+                <Text style={styles.emptyStateCaption}>
+                  Quando precisa de algo específico, use a busca global ou navegue pelos atalhos.
+                </Text>
+                <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Tecidos')}>
+                  <Text style={styles.secondaryButtonText}>Explorar tecidos</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
+        ListEmptyComponent={
+          showResults && !searching ? (
+            <Text style={styles.emptyText}>Nenhum tecido encontrado para "{searchQuery}".</Text>
+          ) : null
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -193,96 +279,277 @@ export default function HomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
-  header: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  listContent: {
+    paddingBottom: theme.spacing.xxxl,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
+  heroCard: {
+    backgroundColor: theme.colors.text,
+    margin: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xl,
   },
-  searchContainer: {
+  heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: theme.spacing.lg,
+  },
+  brandPill: {
+    fontSize: theme.font.sizes.xs,
+    letterSpacing: 6,
+    textTransform: 'uppercase',
+    color: '#ffffff99',
+    marginBottom: theme.spacing.xs,
+  },
+  heroTitle: {
+    fontSize: 32,
+    color: theme.colors.textInverse,
+    fontWeight: theme.font.weights.bold,
+  },
+  heroSubtitle: {
+    color: '#ffffffcc',
+    marginTop: theme.spacing.sm,
+    fontSize: theme.font.sizes.sm,
+    maxWidth: 260,
+    lineHeight: 20,
+  },
+  signOutBtn: {
+    backgroundColor: '#0f172a',
+    padding: theme.spacing.sm,
+    borderRadius: theme.radius.lg,
+  },
+  heroActions: {
+    marginBottom: theme.spacing.lg,
+  },
+  heroPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.xl,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
   },
-  searchIcon: {
-    marginRight: 8,
+  heroPrimaryText: {
+    marginLeft: theme.spacing.sm,
+  },
+  heroPrimaryLabel: {
+    color: theme.colors.textInverse,
+    fontWeight: theme.font.weights.semibold,
+    fontSize: theme.font.sizes.base,
+  },
+  heroPrimaryCaption: {
+    color: '#e0edff',
+    fontSize: theme.font.sizes.xs,
+  },
+  heroSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: theme.radius.xl,
+    paddingVertical: theme.spacing.sm,
+  },
+  heroSecondaryLabel: {
+    marginLeft: theme.spacing.xs,
+    color: theme.colors.primary,
+    fontWeight: theme.font.weights.semibold,
+  },
+  statGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    width: '48%',
+    backgroundColor: '#ffffff12',
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+  },
+  statValue: {
+    color: theme.colors.textInverse,
+    fontSize: 32,
+    fontWeight: theme.font.weights.bold,
+  },
+  statLabel: {
+    color: '#ffffff99',
+    marginTop: theme.spacing.xs,
+    fontSize: theme.font.sizes.xs,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  shortcutSection: {
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: theme.font.sizes.base,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  shortcutRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  shortcutCard: {
+    width: '48%',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  shortcutIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  shortcutLabel: {
+    fontSize: theme.font.sizes.base,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
+  },
+  shortcutCaption: {
+    fontSize: theme.font.sizes.xs,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
+  },
+  searchPanel: {
+    marginHorizontal: theme.spacing.xl,
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceAlt,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
-    color: '#333',
+    marginHorizontal: theme.spacing.sm,
+    color: theme.colors.text,
   },
-  content: {
-    flex: 1,
-    padding: 20,
+  guidedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: theme.spacing.lg,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.primaryLight,
+  },
+  guidedIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#dbeafe',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: theme.spacing.sm,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 40,
+  guidedTitle: {
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 40,
-    gap: 16,
+  guidedCaption: {
+    fontSize: theme.font.sizes.sm,
+    color: theme.colors.textSecondary,
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2563eb',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  button: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    width: '100%',
+  emptyState: {
+    marginHorizontal: theme.spacing.xl,
+    marginTop: theme.spacing.xl,
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  emptyStateTitle: {
+    fontSize: theme.font.sizes.lg,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
+    marginTop: theme.spacing.sm,
   },
-  resultsList: {
-    padding: 16,
+  emptyStateCaption: {
+    textAlign: 'center',
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
+  },
+  secondaryButton: {
+    marginTop: theme.spacing.md,
+    borderRadius: theme.radius.xl,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  secondaryButtonText: {
+    color: theme.colors.text,
+    fontWeight: theme.font.weights.semibold,
   },
   emptyText: {
     textAlign: 'center',
-    marginTop: 40,
-    color: '#999',
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
+  },
+  resultCard: {
+    marginHorizontal: theme.spacing.xl,
+    marginTop: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  resultBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.md,
+  },
+  resultBadgeText: {
+    color: theme.colors.primary,
+    fontWeight: theme.font.weights.bold,
+    fontSize: theme.font.sizes.md,
+  },
+  resultContent: {
+    flex: 1,
+  },
+  resultTitle: {
+    fontSize: theme.font.sizes.base,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
+  },
+  resultSubtitle: {
+    fontSize: theme.font.sizes.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
 });
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Share, Alert, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Share, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ShareSheet from '../components/ShareSheet';
@@ -12,10 +12,11 @@ import { useTissues } from '../hooks/useTissues';
 const WEB_APP_URL = 'https://razai-colaborador.vercel.app';
 
 export default function TissuesScreen({ navigation }: any) {
-  const { data: tissues = [], isLoading: loading, error } = useTissues();
+  const { data: tissues = [], isLoading: loading } = useTissues();
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedTissue, setSelectedTissue] = useState<any>(null);
   const [generating, setGenerating] = useState(false);
+  const [query, setQuery] = useState('');
 
   function handleSharePress(tissue: any) {
     setSelectedTissue(tissue);
@@ -47,42 +48,92 @@ export default function TissuesScreen({ navigation }: any) {
     }
   }
 
+  const filteredTissues = useMemo(() => {
+    if (!query.trim()) return tissues;
+    const normalized = query.trim().toLowerCase();
+    return tissues.filter((t: any) =>
+      t.name.toLowerCase().includes(normalized) ||
+      t.sku.toLowerCase().includes(normalized) ||
+      String(t.width || '').toLowerCase().includes(normalized)
+    );
+  }, [tissues, query]);
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Tecidos</Text>
-        <Text style={styles.subtitle}>Lista de tecidos cadastrados</Text>
-      </View>
-      
       {loading ? (
         <SkeletonList count={6} />
       ) : (
         <FlatList
-          data={tissues}
+          data={filteredTissues}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={(
+            <>
+              <View style={styles.hero}>
+                <Text style={styles.brand}>Coleção</Text>
+                <Text style={styles.heroTitle}>Tecidos RAZAI</Text>
+                <Text style={styles.heroSubtitle}>Explore, compartilhe e abra detalhes premium de cada tecido.</Text>
+                <View style={styles.heroStats}>
+                  <View style={styles.heroChip}>
+                    <Text style={styles.heroChipValue}>{tissues.length}</Text>
+                    <Text style={styles.heroChipLabel}>Cadastrados</Text>
+                  </View>
+                  <View style={styles.heroChip}>
+                    <Text style={styles.heroChipValue}>{filteredTissues.length}</Text>
+                    <Text style={styles.heroChipLabel}>Filtrados</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.searchCard}>
+                <Ionicons name="search" size={18} color={theme.colors.textSecondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar por nome, SKU ou largura"
+                  placeholderTextColor={theme.colors.textSecondary}
+                  value={query}
+                  onChangeText={setQuery}
+                  autoCapitalize="none"
+                />
+                {query.length > 0 && (
+                  <TouchableOpacity onPress={() => setQuery('')}>
+                    <Ionicons name="close-circle" size={18} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </>
+          )}
           renderItem={({ item }) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.card}
               onPress={() => navigation.navigate('TissueDetails', { id: item.id })}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <View style={styles.cardContent}>
+              <View style={styles.cardHeader}>
+                <View style={styles.monogram}>
+                  <Text style={styles.monogramText}>{item.name?.slice(0, 1) || 'T'}</Text>
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle}>{item.name}</Text>
-                  <Text style={styles.cardSubtitle}>{item.sku} • {item.width}cm</Text>
+                  <Text style={styles.cardSubtitle}>{item.sku}</Text>
                 </View>
-                <TouchableOpacity 
-                  style={styles.shareBtn}
-                  onPress={() => handleSharePress(item)}
-                  activeOpacity={0.6}
-                >
-                  <Ionicons name="share-social-outline" size={24} color={theme.colors.primary} />
+                <TouchableOpacity style={styles.shareChip} onPress={() => handleSharePress(item)}>
+                  <Ionicons name="share-outline" size={16} color={theme.colors.primary} />
+                  <Text style={styles.shareChipText}>Compartilhar</Text>
                 </TouchableOpacity>
+              </View>
+              <View style={styles.cardMetaRow}>
+                <View style={styles.metaPill}>
+                  <Ionicons name="resize-outline" size={14} color={theme.colors.textSecondary} />
+                  <Text style={styles.metaText}>{item.width || '—'} cm</Text>
+                </View>
+                <View style={[styles.metaPill, { marginLeft: theme.spacing.sm }]}>
+                  <Ionicons name="color-palette-outline" size={14} color={theme.colors.textSecondary} />
+                  <Text style={styles.metaText}>{item.composition || 'Composição não informada'}</Text>
+                </View>
               </View>
             </TouchableOpacity>
           )}
-          ListEmptyComponent={<Text style={styles.empty}>Nenhum tecido encontrado.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>{query ? 'Nada corresponde à busca.' : 'Nenhum tecido cadastrado.'}</Text>}
         />
       )}
 
@@ -108,54 +159,144 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  header: {
+  list: {
     padding: theme.spacing.xl,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingBottom: theme.spacing.xxxl,
   },
-  title: {
-    fontSize: theme.font.sizes.xl,
+  hero: {
+    backgroundColor: theme.colors.text,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
+  },
+  brand: {
+    fontSize: theme.font.sizes.xs,
+    letterSpacing: 6,
+    color: '#ffffff99',
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    color: theme.colors.textInverse,
+    fontSize: theme.font.sizes.display,
     fontWeight: theme.font.weights.bold,
-    color: theme.colors.text,
-  },
-  subtitle: {
-    fontSize: theme.font.sizes.sm,
-    color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
   },
-  list: {
-    padding: theme.spacing.lg,
+  heroSubtitle: {
+    color: '#ffffffcc',
+    marginTop: theme.spacing.sm,
+    fontSize: theme.font.sizes.sm,
+    lineHeight: 20,
   },
-  empty: {
-    textAlign: 'center',
-    marginTop: theme.spacing.xxxl,
-    color: theme.colors.textMuted,
+  heroStats: {
+    flexDirection: 'row',
+    marginTop: theme.spacing.lg,
+  },
+  heroChip: {
+    backgroundColor: '#ffffff10',
+    borderRadius: theme.radius.lg,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    marginRight: theme.spacing.sm,
+  },
+  heroChipValue: {
+    color: theme.colors.textInverse,
+    fontSize: 28,
+    fontWeight: theme.font.weights.bold,
+  },
+  heroChipLabel: {
+    color: '#ffffff99',
+    fontSize: theme.font.sizes.xs,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  searchCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: theme.spacing.xl,
+  },
+  searchInput: {
+    flex: 1,
+    marginHorizontal: theme.spacing.sm,
+    color: theme.colors.text,
   },
   card: {
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
     padding: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
     marginBottom: theme.spacing.md,
-    ...theme.shadow.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  cardContent: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    marginBottom: theme.spacing.md,
+  },
+  monogram: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.md,
+  },
+  monogramText: {
+    color: theme.colors.primary,
+    fontWeight: theme.font.weights.bold,
+    fontSize: theme.font.sizes.lg,
   },
   cardTitle: {
-    fontSize: theme.font.sizes.base,
+    fontSize: theme.font.sizes.lg,
     fontWeight: theme.font.weights.semibold,
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
   },
   cardSubtitle: {
     fontSize: theme.font.sizes.sm,
     color: theme.colors.textSecondary,
+    marginTop: 2,
   },
-  shareBtn: {
-    padding: theme.spacing.sm,
+  shareChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+  },
+  shareChipText: {
+    marginLeft: theme.spacing.xs,
+    color: theme.colors.primary,
+    fontWeight: theme.font.weights.semibold,
+    fontSize: theme.font.sizes.xs,
+  },
+  cardMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceAlt,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+  },
+  metaText: {
+    marginLeft: theme.spacing.xs,
+    fontSize: theme.font.sizes.xs,
+    color: theme.colors.textSecondary,
+  },
+  empty: {
+    textAlign: 'center',
+    marginTop: theme.spacing.xl,
+    color: theme.colors.textSecondary,
   },
   loadingOverlay: {
     position: 'absolute',
