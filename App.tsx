@@ -12,6 +12,7 @@ import CatalogScreen from './screens/CatalogScreen';
 import LinkDetailsScreen from './screens/LinkDetailsScreen';
 import TissueDetailsScreen from './screens/TissueDetailsScreen';
 import LoginScreen from './screens/LoginScreen';
+import StockOutFlowScreen from './screens/StockOutFlowScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 const Tab = createBottomTabNavigator();
@@ -67,6 +68,7 @@ function Navigation() {
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="LinkDetails" component={LinkDetailsScreen} />
             <Stack.Screen name="TissueDetails" component={TissueDetailsScreen} />
+            <Stack.Screen name="StockOutFlow" component={StockOutFlowScreen} />
           </>
         )}
       </Stack.Navigator>

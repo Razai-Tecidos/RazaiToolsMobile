@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList, Image, Alert, Modal } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -15,12 +15,7 @@ export default function HomeScreen({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [cutterMode, setCutterMode] = useState(false);
-  
-  // Modal State
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
+  // Removido: cutterMode, modalVisible, selectedItem, quantity - agora usa StockOutFlowScreen
 
   useEffect(() => {
     fetchStats();
@@ -103,98 +98,39 @@ export default function HomeScreen({ navigation }: any) {
     }
   }
 
-  async function handleShortage(item: any) {
-    setSelectedItem(item);
-    setQuantity(1);
-    setModalVisible(true);
-  }
-
-  async function confirmShortage(type: 'ZERO' | 'QTY') {
-    if (!selectedItem) return;
-    
-    try {
-      if (type === 'ZERO') {
-        // Get current stock
-        const { data: stockData } = await supabase
-          .from('stock_items')
-          .select('quantity_rolls')
-          .eq('link_id', selectedItem.id)
-          .single();
-        
-        const currentQty = stockData?.quantity_rolls || 0;
-
-        if (currentQty > 0) {
-            await supabase.rpc('register_stock_movement', {
-              p_link_id: selectedItem.id,
-              p_type: 'OUT',
-              p_quantity: currentQty,
-              p_user_id: null
-            });
-        } else {
-            // Ensure it is zeroed/initialized even if it was null
-            await supabase.rpc('register_stock_movement', {
-              p_link_id: selectedItem.id,
-              p_type: 'ADJUST', // or OUT 0
-              p_quantity: 0,
-              p_user_id: null
-            });
-        }
-      } else {
-        // QTY
-        await supabase.rpc('register_stock_movement', {
-          p_link_id: selectedItem.id,
-          p_type: 'OUT',
-          p_quantity: quantity,
-          p_user_id: null
-        });
-      }
-
-      Alert.alert("Sucesso", "Estoque atualizado.");
-      setModalVisible(false);
-      setCutterMode(false);
-      setSearchQuery('');
-      setSelectedItem(null);
-    } catch (e) {
-      Alert.alert("Erro", "Falha ao atualizar estoque.");
-      console.error(e);
-    }
-  }
+  // Funções handleShortage e confirmShortage movidas para StockOutFlowScreen
 
   function renderSearchResult({ item }: { item: any }) {
     return (
       <LinkCard 
         item={item} 
         onPress={() => {
-          if (cutterMode) {
-            handleShortage(item);
-          } else {
-            navigation.navigate('LinkDetails', { id: item.id });
-          }
+          navigation.navigate('LinkDetails', { id: item.id });
         }} 
       />
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, cutterMode && { backgroundColor: '#fef2f2' }]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.title, { marginBottom: 0 }]}>{cutterMode ? 'Modo Cortador ✂️' : 'Razai Mobile'}</Text>
+          <Text style={[styles.title, { marginBottom: 0 }]}>Razai Mobile</Text>
           <TouchableOpacity onPress={() => signOut()}>
             <Ionicons name="log-out-outline" size={24} color="#666" />
           </TouchableOpacity>
         </View>
-        <View style={[styles.searchContainer, cutterMode && { backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#ef4444' }]}>
-          <Ionicons name="search" size={20} color={cutterMode ? '#ef4444' : "#666"} style={styles.searchIcon} />
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder={cutterMode ? "Busque o tecido que acabou..." : "Buscar tecido, cor ou código..."}
+            placeholder="Buscar tecido, cor ou código..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
-            placeholderTextColor={cutterMode ? '#f87171' : '#999'}
+            placeholderTextColor="#999"
           />
-          {searching && <ActivityIndicator size="small" color={cutterMode ? '#ef4444' : "#2563eb"} />}
+          {searching && <ActivityIndicator size="small" color="#2563eb" />}
         </View>
       </View>
 
@@ -240,135 +176,21 @@ export default function HomeScreen({ navigation }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.button, { marginTop: 16, backgroundColor: cutterMode ? theme.colors.danger : theme.colors.surface, borderWidth: 1, borderColor: theme.colors.danger }]}
-            onPress={() => setCutterMode(!cutterMode)}
+            style={[styles.button, { marginTop: 16, backgroundColor: theme.colors.danger }]}
+            onPress={() => navigation.navigate('StockOutFlow')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.buttonText, { color: cutterMode ? theme.colors.textInverse : theme.colors.danger }]}>
-              {cutterMode ? 'Cancelar Aviso de Falta' : '✂️ Avisar Falta de Tecido'}
+            <Text style={styles.buttonText}>
+              ✂️ Avisar Falta de Tecido
             </Text>
           </TouchableOpacity>
         </View>
       )}
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Quantos acabaram?</Text>
-            <Text style={styles.modalSubtitle}>{selectedItem?.tissues?.name} - {selectedItem?.colors?.name}</Text>
-            
-            <View style={styles.counterContainer}>
-              <TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))} style={styles.counterButton} activeOpacity={0.7}>
-                <Text style={styles.counterButtonText}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.counterValue}>{quantity}</Text>
-              <TouchableOpacity onPress={() => setQuantity(quantity + 1)} style={styles.counterButton} activeOpacity={0.7}>
-                <Text style={styles.counterButtonText}>+</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity 
-              style={[styles.button, { backgroundColor: theme.colors.primary, marginBottom: 12 }]}
-              onPress={() => confirmShortage('QTY')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.buttonText}>Confirmar Saída ({quantity})</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.button, { backgroundColor: theme.colors.dangerLight, borderWidth: 1, borderColor: theme.colors.danger }]}
-              onPress={() => confirmShortage('ZERO')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.buttonText, { color: theme.colors.danger }]}>ACABOU TUDO (0)</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={{ marginTop: 16, padding: 10 }}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={{ color: '#666', fontSize: 16 }}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: 'rgba(0,0,0,0.5)'
-  },
-  modalView: {
-    width: '90%',
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 35,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center'
-  },
-  modalSubtitle: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 24,
-    textAlign: 'center'
-  },
-  counterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 32,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 16,
-    padding: 8
-  },
-  counterButton: {
-    width: 56,
-    height: 56,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2
-  },
-  counterButtonText: {
-    fontSize: 32,
-    color: '#333',
-    fontWeight: 'bold',
-    lineHeight: 36
-  },
-  counterValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginHorizontal: 24,
-    minWidth: 40,
-    textAlign: 'center'
-  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -456,55 +278,6 @@ const styles = StyleSheet.create({
   },
   resultsList: {
     padding: 16,
-  },
-  resultItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  thumbnailContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginRight: 12,
-    backgroundColor: '#eee',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  colorPreview: {
-    width: '100%',
-    height: '100%',
-  },
-  resultInfo: {
-    flex: 1,
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
-  },
-  resultColor: {
-    fontWeight: '400',
-    color: '#666',
-  },
-  resultSku: {
-    fontSize: 12,
-    color: '#999',
-    fontFamily: 'monospace',
   },
   emptyText: {
     textAlign: 'center',
