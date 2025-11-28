@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { theme } from '../lib/theme';
 import { Skeleton } from '../components/Skeleton';
 import { AnimatedCard } from '../components/AnimatedCard';
+import { useQuery } from '@tanstack/react-query';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -18,20 +19,48 @@ const WEB_APP_URL = 'https://razai-colaborador.vercel.app';
 
 export default function HomeScreen({ navigation }: any) {
   const { signOut, role, user } = useAuth();
-  const [stats, setStats] = useState({ tissues: 0, colors: 0 });
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [userName, setUserName] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  useEffect(() => {
-    fetchStats();
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
+  // Query for User Profile
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('display_name, username')
+        .eq('id', user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const userName = React.useMemo(() => {
+    if (!profile) return 'Colaborador';
+    const name = profile.display_name || profile.username || 'Colaborador';
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  }, [profile]);
+
+  // Query for Stats
+  const { data: stats, isLoading: loadingStats } = useQuery({
+    queryKey: ['homeStats'],
+    queryFn: async () => {
+      const [tissuesResponse, colorsResponse] = await Promise.all([
+        supabase.from('tissues').select('*', { count: 'exact', head: true }),
+        supabase.from('colors').select('*', { count: 'exact', head: true }),
+      ]);
+      return {
+        tissues: tissuesResponse.count || 0,
+        colors: colorsResponse.count || 0,
+      };
+    },
+    initialData: { tissues: 0, colors: 0 },
+  });
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -57,47 +86,11 @@ export default function HomeScreen({ navigation }: any) {
     Keyboard.dismiss();
   };
 
-  async function fetchProfile() {
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('display_name, username')
-        .eq('id', user?.id)
-        .single();
-      
-      if (data) {
-        // Capitalize first letter
-        const name = data.display_name || data.username || 'Colaborador';
-        setUserName(name.charAt(0).toUpperCase() + name.slice(1));
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
-
   function getGreeting() {
     const hour = new Date().getHours();
     if (hour < 12) return 'Bom dia';
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
-  }
-
-  async function fetchStats() {
-    try {
-      const [tissuesResponse, colorsResponse] = await Promise.all([
-        supabase.from('tissues').select('*', { count: 'exact', head: true }),
-        supabase.from('colors').select('*', { count: 'exact', head: true }),
-      ]);
-
-      setStats({
-        tissues: tissuesResponse.count || 0,
-        colors: colorsResponse.count || 0,
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function performSearch(query: string) {
@@ -201,7 +194,7 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
                 <View style={styles.statGrid}>
                   <View style={styles.statCard}>
-                    {loading ? (
+                    {loadingStats ? (
                       <Skeleton width={72} height={28} />
                     ) : (
                       <>
@@ -211,7 +204,7 @@ export default function HomeScreen({ navigation }: any) {
                     )}
                   </View>
                   <View style={styles.statCard}>
-                    {loading ? (
+                    {loadingStats ? (
                       <Skeleton width={72} height={28} />
                     ) : (
                       <>

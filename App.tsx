@@ -1,10 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { View, ActivityIndicator } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 
 import HomeScreen from './screens/HomeScreen';
 import TissuesScreen from './screens/TissuesScreen';
@@ -14,6 +15,10 @@ import TissueDetailsScreen from './screens/TissueDetailsScreen';
 import LoginScreen from './screens/LoginScreen';
 import StockOutFlowScreen from './screens/StockOutFlowScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { initSentry, routingInstrumentation } from './lib/sentry';
+
+// Initialize Sentry
+initSentry();
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -60,6 +65,7 @@ function MainTabs() {
 
 function Navigation() {
   const { user, loading } = useAuth();
+  const navigationRef = React.useRef<NavigationContainerRef<any>>(null);
 
   if (loading) {
     return (
@@ -70,7 +76,12 @@ function Navigation() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => {
+        routingInstrumentation.registerNavigationContainer(navigationRef);
+      }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -90,12 +101,24 @@ function Navigation() {
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, asyncStoragePersister } from './lib/queryClient';
+import React from 'react';
 
-export default function App() {
+function App() {
   return (
     <PersistQueryClientProvider 
       client={queryClient} 
-      persistOptions={{ persister: asyncStoragePersister }}
+      persistOptions={{ 
+        persister: asyncStoragePersister,
+        dehydrateOptions: {
+          shouldDehydrateMutation: (mutation) => true, // Persist all mutations
+          shouldDehydrateQuery: (query) => {
+            const queryState = query.state;
+            if (queryState.data === undefined) return false;
+            // Only persist successful queries or those that are fetching
+            return true;
+          },
+        }
+      }}
     >
       <SafeAreaProvider>
         <AuthProvider>
@@ -105,4 +128,6 @@ export default function App() {
     </PersistQueryClientProvider>
   );
 }
+
+export default Sentry.wrap(App);
 

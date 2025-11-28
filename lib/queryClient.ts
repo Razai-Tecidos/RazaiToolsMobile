@@ -6,8 +6,13 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       gcTime: 1000 * 60 * 60 * 24, // 24 hours
-      staleTime: 1000 * 60 * 5, // 5 minutes (fetches fresh data if older than 5m, otherwise uses cache)
+      staleTime: 1000 * 60 * 5, // 5 minutes
       retry: 2,
+      networkMode: 'offlineFirst', // Read from cache if offline
+    },
+    mutations: {
+      networkMode: 'offlineFirst', // Queue mutations if offline
+      retry: 3, // Retry failed mutations
     },
   },
 });

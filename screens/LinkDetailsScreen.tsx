@@ -1,38 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { StyleSheet, Text, View, Image, ScrollView, ActivityIndicator, TouchableOpacity, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { useLink } from '../hooks/useLinks';
 
 export default function LinkDetailsScreen({ route, navigation }: any) {
   const { id } = route.params;
-  const [link, setLink] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDetails();
-  }, [id]);
-
-  async function fetchDetails() {
-    try {
-      const { data, error } = await supabase
-        .from('links')
-        .select(`
-          *,
-          tissues (*),
-          colors (*)
-        `)
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      setLink(data);
-    } catch (error) {
-      console.error('Error fetching details:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: link, isLoading: loading } = useLink(id);
 
   async function shareImage() {
     if (!link?.image_path) return;

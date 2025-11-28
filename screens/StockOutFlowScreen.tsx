@@ -26,6 +26,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { theme } from '../lib/theme';
 import { linkService } from '../lib/services/linkService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import NetInfo from '@react-native-community/netinfo';
 
 // Types
 interface Tissue {
@@ -58,19 +60,18 @@ interface Props {
 }
 
 export default function StockOutFlowScreen({ navigation }: Props) {
-    function resolveLinkImage(imagePath: string | null | undefined): string | null {
-      if (!imagePath) return null;
-      if (/^https?:\/\//i.test(imagePath)) return imagePath;
-      return linkService.getImageUrl(imagePath);
-    }
+  const queryClient = useQueryClient();
+
+  function resolveLinkImage(imagePath: string | null | undefined): string | null {
+    if (!imagePath) return null;
+    if (/^https?:\/\//i.test(imagePath)) return imagePath;
+    return linkService.getImageUrl(imagePath);
+  }
 
   // Flow state
   const [currentStep, setCurrentStep] = useState<Step>('tissue');
   
   // Data state
-  const [tissues, setTissues] = useState<Tissue[]>([]);
-  const [links, setLinks] = useState<LinkWithStock[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Selection state
@@ -80,41 +81,24 @@ export default function StockOutFlowScreen({ navigation }: Props) {
   
   // Modal state
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [processing, setProcessing] = useState(false);
 
-  // Load tissues on mount
-  useEffect(() => {
-    loadTissues();
-  }, []);
-
-  // Load links when tissue is selected
-  useEffect(() => {
-    if (selectedTissue) {
-      loadLinksForTissue(selectedTissue.id);
-    }
-  }, [selectedTissue]);
-
-  async function loadTissues() {
-    setLoading(true);
-    try {
+  // Queries
+  const { data: tissues = [], isLoading: loadingTissues } = useQuery({
+    queryKey: ['tissues'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('tissues')
         .select('id, name, sku')
         .order('name');
-      
       if (error) throw error;
-      setTissues(data || []);
-    } catch (err) {
-      console.error('Erro ao carregar tecidos:', err);
-      Alert.alert('Erro', 'Não foi possível carregar os tecidos');
-    } finally {
-      setLoading(false);
-    }
-  }
+      return data as Tissue[];
+    },
+  });
 
-  async function loadLinksForTissue(tissueId: string) {
-    setLoading(true);
-    try {
+  const { data: links = [], isLoading: loadingLinks } = useQuery({
+    queryKey: ['links', selectedTissue?.id],
+    queryFn: async () => {
+      if (!selectedTissue?.id) return [];
       const { data, error } = await supabase
         .from('links')
         .select(`
@@ -126,23 +110,60 @@ export default function StockOutFlowScreen({ navigation }: Props) {
           colors (id, name, sku, hex),
           stock_items (quantity_rolls)
         `)
-        .eq('tissue_id', tissueId)
+        .eq('tissue_id', selectedTissue.id)
         .eq('status', 'Ativo')
         .order('sku_filho');
       
       if (error) throw error;
-      const normalizedLinks = (data || []).map((link) => ({
+      return (data || []).map((link) => ({
         ...link,
         colors: Array.isArray(link.colors) ? link.colors[0] : link.colors,
       })) as LinkWithStock[];
-      setLinks(normalizedLinks);
-    } catch (err) {
-      console.error('Erro ao carregar cores:', err);
-      Alert.alert('Erro', 'Não foi possível carregar as cores');
-    } finally {
-      setLoading(false);
-    }
-  }
+    },
+    enabled: !!selectedTissue?.id,
+  });
+
+  // Mutation
+  const stockMutation = useMutation({
+    mutationFn: async (vars: { linkId: string; qty: number }) => {
+      const { error } = await supabase.rpc('register_stock_movement', {
+        p_link_id: vars.linkId,
+        p_type: 'OUT',
+        p_quantity: vars.qty,
+        p_user_id: null,
+      });
+      if (error) throw error;
+    },
+    onMutate: async (vars) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['links', selectedTissue?.id] });
+      const previousLinks = queryClient.getQueryData(['links', selectedTissue?.id]);
+
+      queryClient.setQueryData(['links', selectedTissue?.id], (old: LinkWithStock[] | undefined) => {
+        if (!old) return [];
+        return old.map(link => {
+          if (link.id === vars.linkId) {
+            const currentQty = link.stock_items?.[0]?.quantity_rolls || 0;
+            return {
+              ...link,
+              stock_items: [{ quantity_rolls: Math.max(0, currentQty - vars.qty) }]
+            };
+          }
+          return link;
+        });
+      });
+
+      return { previousLinks };
+    },
+    onError: (err, vars, context) => {
+      queryClient.setQueryData(['links', selectedTissue?.id], context?.previousLinks);
+      Alert.alert('Erro', 'Não foi possível registrar a saída. Tente novamente.');
+    },
+    onSuccess: () => {
+      // Invalidate to refetch fresh data eventually
+      queryClient.invalidateQueries({ queryKey: ['links', selectedTissue?.id] });
+    },
+  });
 
   function getStockQuantity(link: LinkWithStock): number {
     if (!link.stock_items || link.stock_items.length === 0) return 0;
@@ -168,31 +189,26 @@ export default function StockOutFlowScreen({ navigation }: Props) {
   async function handleConfirmStockOut() {
     if (!selectedLink) return;
     
-    setProcessing(true);
+    setConfirmModalVisible(false);
+    
     try {
-      const { error } = await supabase.rpc('register_stock_movement', {
-        p_link_id: selectedLink.id,
-        p_type: 'OUT',
-        p_quantity: quantity,
-        p_user_id: null,
-      });
-
-      if (error) throw error;
-
+      stockMutation.mutate({ linkId: selectedLink.id, qty: quantity });
+      
       const currentStock = getStockQuantity(selectedLink);
       const newStock = Math.max(0, currentStock - quantity);
+      
+      const state = await NetInfo.fetch();
+      const isOffline = !state.isConnected;
 
       Alert.alert(
-        '✅ Registrado!',
-        `Saíram ${quantity} rolo${quantity > 1 ? 's' : ''}.\nEstoque atual: ${newStock} rolo${newStock !== 1 ? 's' : ''}.`,
+        isOffline ? '💾 Salvo Offline!' : '✅ Registrado!',
+        isOffline 
+          ? `Sem internet. A saída de ${quantity} rolo(s) foi salva e será enviada assim que conectar.`
+          : `Saíram ${quantity} rolo${quantity > 1 ? 's' : ''}.\nEstoque atual: ${newStock} rolo${newStock !== 1 ? 's' : ''}.`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (err) {
       console.error('Erro ao registrar saída:', err);
-      Alert.alert('Erro', 'Não foi possível registrar a saída');
-    } finally {
-      setProcessing(false);
-      setConfirmModalVisible(false);
     }
   }
 
@@ -200,7 +216,7 @@ export default function StockOutFlowScreen({ navigation }: Props) {
     if (currentStep === 'color') {
       setCurrentStep('tissue');
       setSelectedTissue(null);
-      setLinks([]);
+      // setLinks([]); // Handled by query key change
     } else if (currentStep === 'quantity') {
       setCurrentStep('color');
       setSelectedLink(null);
