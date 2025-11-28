@@ -81,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      // @ts-ignore - TOKEN_REFRESH_REVOKED might not be in the type definition yet
       if (event === 'TOKEN_REFRESH_REVOKED' || event === 'SIGNED_OUT') {
         handleAuthState(null)
       } else {
