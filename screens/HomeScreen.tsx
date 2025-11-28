@@ -463,6 +463,10 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
   },
   adminSubtitle: {
+    fontSize: theme.font.sizes.xs,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
   searchPanel: {
     marginHorizontal: theme.spacing.xl,
     padding: theme.spacing.lg,
@@ -477,11 +481,6 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     borderBottomWidth: 1,
     paddingTop: theme.spacing.md,
-  },
-  searchHeader: {or: theme.colors.surface,
-    borderRadius: theme.radius.xl,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   searchHeader: {
     flexDirection: 'row',
