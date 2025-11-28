@@ -192,7 +192,7 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
                 <View style={styles.heroActions}>
                   <TouchableOpacity style={styles.heroPrimary} onPress={() => navigation.navigate('StockOutFlow')}>
-                    <Ionicons name="cut" size={20} color={theme.colors.textInverse} />
+                    <Ionicons name="cut" size={24} color="#DC2626" />
                     <View style={styles.heroPrimaryText}>
                       <Text style={styles.heroPrimaryLabel}>Registrar falta</Text>
                       <Text style={styles.heroPrimaryCaption}>Fluxo guiado em 3 passos</Text>
@@ -342,23 +342,25 @@ const styles = StyleSheet.create({
   heroPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#FEF2F2',
     borderRadius: theme.radius.xl,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xl,
     marginBottom: theme.spacing.sm,
+    borderWidth: 2,
+    borderColor: '#EF4444',
   },
   heroPrimaryText: {
-    marginLeft: theme.spacing.sm,
+    marginLeft: theme.spacing.md,
   },
   heroPrimaryLabel: {
-    color: theme.colors.textInverse,
-    fontWeight: theme.font.weights.semibold,
-    fontSize: theme.font.sizes.base,
+    color: '#991B1B',
+    fontWeight: theme.font.weights.bold,
+    fontSize: theme.font.sizes.lg,
   },
   heroPrimaryCaption: {
-    color: '#e0edff',
-    fontSize: theme.font.sizes.xs,
+    color: '#EF4444',
+    fontSize: theme.font.sizes.sm,
   },
   heroSecondary: {
     flexDirection: 'row',
