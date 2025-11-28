@@ -38,10 +38,7 @@ export default function LoginScreen() {
         <View style={styles.content}>
           {/* Logo Section */}
           <View style={styles.logoSection}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>R</Text>
-            </View>
-            <Text style={styles.title}>Razai Mobile</Text>
+            <Text style={styles.title}>Razai Tecidos</Text>
             <Text style={styles.subtitle}>Faça login para continuar</Text>
           </View>
 
@@ -116,21 +113,6 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: 'center',
     marginBottom: theme.spacing.xxxl,
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: theme.spacing.lg,
-    ...theme.shadow.md,
-  },
-  logoText: {
-    fontSize: 36,
-    fontWeight: theme.font.weights.bold,
-    color: theme.colors.textInverse,
   },
   title: {
     fontSize: theme.font.sizes.display,
