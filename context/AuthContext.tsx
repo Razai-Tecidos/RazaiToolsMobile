@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { AppState } from 'react-native'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
@@ -87,9 +88,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
+    // Monitorar AppState para renovar token ao voltar para o app
+    const appStateListener = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        supabase.auth.startAutoRefresh()
+      } else {
+        supabase.auth.stopAutoRefresh()
+      }
+    })
+
     return () => {
       mounted = false
       subscription.unsubscribe()
+      appStateListener.remove()
     }
   }, [])
 
