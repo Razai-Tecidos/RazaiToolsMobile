@@ -9,8 +9,14 @@ export function initSentry() {
     // return; 
   }
 
+  const dsn = 'YOUR_SENTRY_DSN_HERE';
+  if (dsn === 'YOUR_SENTRY_DSN_HERE') {
+    console.log('[Sentry] DSN not configured, skipping initialization');
+    return;
+  }
+
   Sentry.init({
-    dsn: 'YOUR_SENTRY_DSN_HERE', // TODO: Replace with actual DSN
+    dsn: dsn, // TODO: Replace with actual DSN
     debug: __DEV__, // If `true`, Sentry will try to print out useful debugging information if something goes wrong with sending the event. Set it to `false` in production
     integrations: [
       new Sentry.ReactNativeTracing({
