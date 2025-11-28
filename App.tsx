@@ -5,7 +5,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { View, ActivityIndicator } from 'react-native';
-import * as Sentry from '@sentry/react-native';
 
 import HomeScreen from './screens/HomeScreen';
 import TissuesScreen from './screens/TissuesScreen';
@@ -15,10 +14,6 @@ import TissueDetailsScreen from './screens/TissueDetailsScreen';
 import LoginScreen from './screens/LoginScreen';
 import StockOutFlowScreen from './screens/StockOutFlowScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { initSentry, routingInstrumentation } from './lib/sentry';
-
-// Initialize Sentry
-initSentry();
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -78,9 +73,6 @@ function Navigation() {
   return (
     <NavigationContainer
       ref={navigationRef}
-      onReady={() => {
-        routingInstrumentation.registerNavigationContainer(navigationRef);
-      }}
     >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
@@ -129,5 +121,5 @@ function App() {
   );
 }
 
-export default Sentry.wrap(App);
+export default App;
 
