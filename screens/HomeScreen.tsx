@@ -254,16 +254,6 @@ export default function HomeScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
             )}
-
-            {!showResults && (
-              <View style={styles.emptyState}>
-                <Ionicons name="information-circle-outline" size={28} color={theme.colors.primary} />
-                <Text style={styles.emptyStateTitle}>Pronto para operar</Text>
-                <Text style={styles.emptyStateCaption}>
-                  Quando precisa de algo específico, use a busca global ou navegue pelos atalhos.
-                </Text>
-              </View>
-            )}
           </>
         )}
         ListEmptyComponent={
