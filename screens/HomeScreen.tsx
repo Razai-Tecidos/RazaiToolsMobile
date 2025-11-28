@@ -8,6 +8,7 @@ import { theme } from '../lib/theme';
 import { Skeleton } from '../components/Skeleton';
 import { AnimatedCard } from '../components/AnimatedCard';
 import { useQuery } from '@tanstack/react-query';
+import { linkService } from '../lib/services/linkService';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -20,8 +21,7 @@ const WEB_APP_URL = 'https://razai-colaborador.vercel.app';
 export default function HomeScreen({ navigation }: any) {
   const { signOut, role, user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Query for User Profile
@@ -62,17 +62,20 @@ export default function HomeScreen({ navigation }: any) {
     initialData: { tissues: 0, colors: 0 },
   });
 
+  // Debounce search query
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchQuery.length > 1) {
-        performSearch(searchQuery);
-      } else {
-        setSearchResults([]);
-      }
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
     }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
+    return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // Search Query
+  const { data: searchResults = [], isLoading: searching } = useQuery({
+    queryKey: ['links', 'search', debouncedQuery],
+    queryFn: () => linkService.search(debouncedQuery),
+    enabled: debouncedQuery.trim().length > 1,
+  });
 
   const handleSearchFocus = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -91,53 +94,6 @@ export default function HomeScreen({ navigation }: any) {
     if (hour < 12) return 'Bom dia';
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
-  }
-
-  async function performSearch(query: string) {
-    setSearching(true);
-    try {
-      // 1. Find matching Tissues
-      const { data: tissues } = await supabase
-        .from('tissues')
-        .select('id')
-        .or(`name.ilike.%${query}%,sku.ilike.%${query}%`);
-      
-      const tissueIds = tissues?.map(t => t.id) || [];
-
-      // 2. Find matching Colors
-      const { data: colors } = await supabase
-        .from('colors')
-        .select('id')
-        .or(`name.ilike.%${query}%,sku.ilike.%${query}%`);
-      
-      const colorIds = colors?.map(c => c.id) || [];
-
-      // 3. Find Links matching SKU OR Tissue OR Color
-      let linkQuery = supabase
-        .from('links')
-        .select(`
-          id,
-          sku_filho,
-          image_path,
-          tissues!inner (name, sku),
-          colors!inner (name, sku, hex)
-        `)
-        .limit(50);
-
-      const conditions = [`sku_filho.ilike.%${query}%`];
-      if (tissueIds.length > 0) conditions.push(`tissue_id.in.(${tissueIds.join(',')})`);
-      if (colorIds.length > 0) conditions.push(`color_id.in.(${colorIds.join(',')})`);
-
-      const { data: links, error } = await linkQuery.or(conditions.join(','));
-
-      if (error) throw error;
-      setSearchResults(links || []);
-
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
-      setSearching(false);
-    }
   }
 
   // Funções handleShortage e confirmShortage movidas para StockOutFlowScreen
