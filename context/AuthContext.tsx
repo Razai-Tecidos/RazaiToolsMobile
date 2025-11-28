@@ -31,67 +31,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    const applySession = (sessionValue: Session | null) => {
-      if (!mounted) return
-      setSession(sessionValue)
-      setUser(sessionValue?.user ?? null)
-    }
-
-    const loadRoleForSession = async (sessionValue: Session | null) => {
+    const handleAuthState = async (session: Session | null) => {
       if (!mounted) return
 
-      if (!sessionValue?.user?.id) {
-        setRole(null)
+      let userRole: UserRole = 'collaborator'
+
+      if (session?.user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single()
+
+          if (profile?.role) {
+            userRole = profile.role as UserRole
+          }
+        } catch (error) {
+          console.error('Erro ao buscar perfil:', error)
+        }
+      }
+
+      if (mounted) {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setRole(userRole)
         setLoading(false)
-        return
       }
-
-      setLoading(true)
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', sessionValue.user.id)
-          .single()
-
-        if (!mounted) return
-        if (error) {
-          console.error('Falha ao carregar role do usuário', error)
-          setRole('collaborator')
-        } else {
-          setRole((data?.role as UserRole) ?? 'collaborator')
-        }
-      } catch (err) {
-        if (mounted) {
-          console.error('Erro inesperado ao carregar role', err)
-          setRole('collaborator')
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    const handleAuthState = (sessionValue: Session | null) => {
-      applySession(sessionValue)
-      loadRoleForSession(sessionValue)
     }
 
     supabase.auth
       .getSession()
-      .then(({ data: { session } }) => {
-        handleAuthState(session)
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.log('Erro de sessão (recuperável):', error.message)
+          handleAuthState(null)
+        } else {
+          handleAuthState(session)
+        }
       })
       .catch((error) => {
-        console.error('Falha ao inicializar sessão', error)
-        handleAuthState(null)
+        console.log('Falha crítica ao inicializar sessão:', error)
+        if (mounted) {
+          handleAuthState(null)
+        }
       })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, sessionValue) => {
-      handleAuthState(sessionValue)
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESH_REVOKED' || event === 'SIGNED_OUT') {
+        handleAuthState(null)
+      } else {
+        handleAuthState(session)
+      }
     })
 
     return () => {
@@ -128,9 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
-    setSession(null)
-    setUser(null)
-    setRole(null)
   }
 
   return (
