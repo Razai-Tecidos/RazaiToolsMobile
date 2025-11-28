@@ -10,39 +10,20 @@ import { Skeleton } from '../components/Skeleton';
 const WEB_APP_URL = 'https://razai-colaborador.vercel.app';
 
 export default function HomeScreen({ navigation }: any) {
-  const { signOut, role } = useAuth();
+  const { signOut, role, user } = useAuth();
   const [stats, setStats] = useState({ tissues: 0, colors: 0 });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const shortcuts = [
-    {
-      id: 'stock',
-      label: 'Registrar falta',
-      description: 'Fluxo guiado',
-      icon: 'alert-circle-outline' as const,
-      action: () => navigation.navigate('StockOutFlow'),
-    },
-    {
-      id: 'tissues',
-      label: 'Abrir tecidos',
-      description: 'Lista completa',
-      icon: 'layers-outline' as const,
-      action: () => navigation.navigate('Tecidos'),
-    },
-    {
-      id: 'catalog',
-      label: 'Ver catálogo',
-      description: 'Compartilhar PDF/Link',
-      icon: 'book-outline' as const,
-      action: () => navigation.navigate('Catálogo'),
-    },
-  ];
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     fetchStats();
-  }, []);
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -55,6 +36,31 @@ export default function HomeScreen({ navigation }: any) {
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
+
+  async function fetchProfile() {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name, username')
+        .eq('id', user?.id)
+        .single();
+      
+      if (data) {
+        // Capitalize first letter
+        const name = data.display_name || data.username || 'Colaborador';
+        setUserName(name.charAt(0).toUpperCase() + name.slice(1));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }
 
   async function fetchStats() {
     try {
@@ -156,7 +162,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={styles.heroTop}>
                 <View>
                   <Text style={styles.brandPill}>RAZAI {role === 'admin' ? 'ADMIN' : ''}</Text>
-                  <Text style={styles.heroTitle}>Operação Cutter</Text>
+                  <Text style={styles.heroTitle}>{getGreeting()}, {userName}!</Text>
                   <Text style={styles.heroSubtitle}>Controle de estoque impecável com poucos toques.</Text>
                 </View>
                 <TouchableOpacity onPress={() => signOut()} style={styles.signOutBtn}>
@@ -170,10 +176,6 @@ export default function HomeScreen({ navigation }: any) {
                     <Text style={styles.heroPrimaryLabel}>Registrar falta</Text>
                     <Text style={styles.heroPrimaryCaption}>Fluxo guiado em 3 passos</Text>
                   </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.heroSecondary} onPress={() => navigation.navigate('Catálogo')}>
-                  <Ionicons name="book-outline" size={18} color={theme.colors.primary} />
-                  <Text style={styles.heroSecondaryLabel}>Abrir catálogo</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.statGrid}>
@@ -197,43 +199,6 @@ export default function HomeScreen({ navigation }: any) {
                     </>
                   )}
                 </View>
-              </View>
-            </View>
-
-            <View style={styles.shortcutSection}>
-              {role === 'admin' && (
-                <TouchableOpacity
-                  style={[styles.adminCard, { marginBottom: theme.spacing.lg }]}
-                  onPress={() => Linking.openURL(WEB_APP_URL)}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.adminIconWrap}>
-                    <Ionicons name="settings-outline" size={24} color={theme.colors.textInverse} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.adminTitle}>Painel Administrativo</Text>
-                    <Text style={styles.adminSubtitle}>Gerenciar cores, usuários e configurações avançadas via Web.</Text>
-                  </View>
-                  <Ionicons name="open-outline" size={20} color={theme.colors.textInverse} />
-                </TouchableOpacity>
-              )}
-
-              <Text style={styles.sectionTitle}>Acessos rápidos</Text>
-              <View style={styles.shortcutRow}>
-                {shortcuts.map((shortcut) => (
-                  <TouchableOpacity
-                    key={shortcut.id}
-                    style={styles.shortcutCard}
-                    onPress={shortcut.action}
-                    activeOpacity={0.85}
-                  >
-                    <View style={styles.shortcutIconWrap}>
-                      <Ionicons name={shortcut.icon} size={18} color={theme.colors.primary} />
-                    </View>
-                    <Text style={styles.shortcutLabel}>{shortcut.label}</Text>
-                    <Text style={styles.shortcutCaption}>{shortcut.description}</Text>
-                  </TouchableOpacity>
-                ))}
               </View>
             </View>
 
@@ -271,6 +236,25 @@ export default function HomeScreen({ navigation }: any) {
               )}
             </View>
 
+            {role === 'admin' && (
+              <View style={{ marginHorizontal: theme.spacing.xl, marginBottom: theme.spacing.lg }}>
+                <TouchableOpacity
+                  style={styles.adminCard}
+                  onPress={() => Linking.openURL(WEB_APP_URL)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.adminIconWrap}>
+                    <Ionicons name="settings-outline" size={24} color={theme.colors.textInverse} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.adminTitle}>Painel Administrativo</Text>
+                    <Text style={styles.adminSubtitle}>Gerenciar cores, usuários e configurações avançadas via Web.</Text>
+                  </View>
+                  <Ionicons name="open-outline" size={20} color={theme.colors.textInverse} />
+                </TouchableOpacity>
+              </View>
+            )}
+
             {!showResults && (
               <View style={styles.emptyState}>
                 <Ionicons name="information-circle-outline" size={28} color={theme.colors.primary} />
@@ -278,9 +262,6 @@ export default function HomeScreen({ navigation }: any) {
                 <Text style={styles.emptyStateCaption}>
                   Quando precisa de algo específico, use a busca global ou navegue pelos atalhos.
                 </Text>
-                <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Tecidos')}>
-                  <Text style={styles.secondaryButtonText}>Explorar tecidos</Text>
-                </TouchableOpacity>
               </View>
             )}
           </>
