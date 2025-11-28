@@ -300,7 +300,7 @@ export default function StockOutFlowScreen({ navigation }: Props) {
           )}
         </View>
 
-        {loading ? (
+        {loadingTissues ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
@@ -341,7 +341,7 @@ export default function StockOutFlowScreen({ navigation }: Props) {
       <View style={styles.stepContent}>
         <Text style={styles.stepTitle}>Qual cor de {selectedTissue?.name}?</Text>
         
-        {loading ? (
+        {loadingLinks ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
@@ -570,7 +570,7 @@ export default function StockOutFlowScreen({ navigation }: Props) {
               <TouchableOpacity
                 style={styles.modalCancelBtn}
                 onPress={() => setConfirmModalVisible(false)}
-                disabled={processing}
+                disabled={stockMutation.isPending}
               >
                 <Text style={styles.modalCancelText}>Voltar</Text>
               </TouchableOpacity>
@@ -578,10 +578,10 @@ export default function StockOutFlowScreen({ navigation }: Props) {
               <TouchableOpacity
                 style={styles.modalConfirmBtn}
                 onPress={handleConfirmStockOut}
-                disabled={processing}
+                disabled={stockMutation.isPending}
                 activeOpacity={0.8}
               >
-                {processing ? (
+                {stockMutation.isPending ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <>
