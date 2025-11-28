@@ -1,13 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Share, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Share, Alert, ActivityIndicator, TextInput, Keyboard, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ShareSheet from '../components/ShareSheet';
 import { generateTissuePdf } from '../lib/pdf';
 import { SkeletonList } from '../components/Skeleton';
 import { theme } from '../lib/theme';
+import { AnimatedCard } from '../components/AnimatedCard';
 
 import { useTissues } from '../hooks/useTissues';
+
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
 const WEB_APP_URL = 'https://razai-colaborador.vercel.app';
 
@@ -17,6 +24,7 @@ export default function TissuesScreen({ navigation }: any) {
   const [selectedTissue, setSelectedTissue] = useState<any>(null);
   const [generating, setGenerating] = useState(false);
   const [query, setQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   function handleSharePress(tissue: any) {
     setSelectedTissue(tissue);
@@ -48,6 +56,18 @@ export default function TissuesScreen({ navigation }: any) {
     }
   }
 
+  const handleSearchFocus = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsSearchFocused(true);
+  };
+
+  const handleSearchCancel = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setQuery('');
+    setIsSearchFocused(false);
+    Keyboard.dismiss();
+  };
+
   const filteredTissues = useMemo(() => {
     if (!query.trim()) return tissues;
     const normalized = query.trim().toLowerCase();
@@ -69,22 +89,24 @@ export default function TissuesScreen({ navigation }: any) {
           contentContainerStyle={styles.list}
           ListHeaderComponent={(
             <>
-              <View style={styles.hero}>
-                <Text style={styles.brand}>Coleção</Text>
-                <Text style={styles.heroTitle}>Tecidos RAZAI</Text>
-                <Text style={styles.heroSubtitle}>Explore, compartilhe e abra detalhes premium de cada tecido.</Text>
-                <View style={styles.heroStats}>
-                  <View style={styles.heroChip}>
-                    <Text style={styles.heroChipValue}>{tissues.length}</Text>
-                    <Text style={styles.heroChipLabel}>Cadastrados</Text>
-                  </View>
-                  <View style={styles.heroChip}>
-                    <Text style={styles.heroChipValue}>{filteredTissues.length}</Text>
-                    <Text style={styles.heroChipLabel}>Filtrados</Text>
+              {!isSearchFocused && (
+                <View style={styles.hero}>
+                  <Text style={styles.brand}>Coleção</Text>
+                  <Text style={styles.heroTitle}>Tecidos RAZAI</Text>
+                  <Text style={styles.heroSubtitle}>Explore, compartilhe e abra detalhes premium de cada tecido.</Text>
+                  <View style={styles.heroStats}>
+                    <View style={styles.heroChip}>
+                      <Text style={styles.heroChipValue}>{tissues.length}</Text>
+                      <Text style={styles.heroChipLabel}>Cadastrados</Text>
+                    </View>
+                    <View style={styles.heroChip}>
+                      <Text style={styles.heroChipValue}>{filteredTissues.length}</Text>
+                      <Text style={styles.heroChipLabel}>Filtrados</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-              <View style={styles.searchCard}>
+              )}
+              <View style={[styles.searchCard, isSearchFocused && styles.searchCardFocused]}>
                 <Ionicons name="search" size={18} color={theme.colors.textSecondary} />
                 <TextInput
                   style={styles.searchInput}
@@ -92,46 +114,49 @@ export default function TissuesScreen({ navigation }: any) {
                   placeholderTextColor={theme.colors.textSecondary}
                   value={query}
                   onChangeText={setQuery}
+                  onFocus={handleSearchFocus}
                   autoCapitalize="none"
                 />
-                {query.length > 0 && (
-                  <TouchableOpacity onPress={() => setQuery('')}>
-                    <Ionicons name="close-circle" size={18} color={theme.colors.textSecondary} />
+                {(query.length > 0 || isSearchFocused) && (
+                  <TouchableOpacity onPress={handleSearchCancel}>
+                    <Text style={{ color: theme.colors.primary, fontWeight: '600', marginLeft: 8 }}>Cancelar</Text>
                   </TouchableOpacity>
                 )}
               </View>
             </>
           )}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => navigation.navigate('TissueDetails', { id: item.id })}
-              activeOpacity={0.8}
-            >
-              <View style={styles.cardHeader}>
-                <View style={styles.monogram}>
-                  <Text style={styles.monogramText}>{item.name?.slice(0, 1) || 'T'}</Text>
+          renderItem={({ item, index }) => (
+            <AnimatedCard index={index}>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => navigation.navigate('TissueDetails', { id: item.id })}
+                activeOpacity={0.8}
+              >
+                <View style={styles.cardHeader}>
+                  <View style={styles.monogram}>
+                    <Text style={styles.monogramText}>{item.name?.slice(0, 1) || 'T'}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle}>{item.name}</Text>
+                    <Text style={styles.cardSubtitle}>{item.sku}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.shareChip} onPress={() => handleSharePress(item)}>
+                    <Ionicons name="share-outline" size={16} color={theme.colors.primary} />
+                    <Text style={styles.shareChipText}>Compartilhar</Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.name}</Text>
-                  <Text style={styles.cardSubtitle}>{item.sku}</Text>
+                <View style={styles.cardMetaRow}>
+                  <View style={styles.metaPill}>
+                    <Ionicons name="resize-outline" size={14} color={theme.colors.textSecondary} />
+                    <Text style={styles.metaText}>{item.width || '—'} cm</Text>
+                  </View>
+                  <View style={[styles.metaPill, { marginLeft: theme.spacing.sm }]}>
+                    <Ionicons name="color-palette-outline" size={14} color={theme.colors.textSecondary} />
+                    <Text style={styles.metaText}>{item.composition || 'Composição não informada'}</Text>
+                  </View>
                 </View>
-                <TouchableOpacity style={styles.shareChip} onPress={() => handleSharePress(item)}>
-                  <Ionicons name="share-outline" size={16} color={theme.colors.primary} />
-                  <Text style={styles.shareChipText}>Compartilhar</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.cardMetaRow}>
-                <View style={styles.metaPill}>
-                  <Ionicons name="resize-outline" size={14} color={theme.colors.textSecondary} />
-                  <Text style={styles.metaText}>{item.width || '—'} cm</Text>
-                </View>
-                <View style={[styles.metaPill, { marginLeft: theme.spacing.sm }]}>
-                  <Ionicons name="color-palette-outline" size={14} color={theme.colors.textSecondary} />
-                  <Text style={styles.metaText}>{item.composition || 'Composição não informada'}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </AnimatedCard>
           )}
           ListEmptyComponent={<Text style={styles.empty}>{query ? 'Nada corresponde à busca.' : 'Nenhum tecido cadastrado.'}</Text>}
         />
@@ -219,6 +244,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     marginBottom: theme.spacing.xl,
+  },
+  searchCardFocused: {
+    marginBottom: theme.spacing.md,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceAlt,
   },
   searchInput: {
     flex: 1,

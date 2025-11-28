@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList, Linking } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList, Linking, Keyboard, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../lib/theme';
 import { Skeleton } from '../components/Skeleton';
+import { AnimatedCard } from '../components/AnimatedCard';
+
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
 const WEB_APP_URL = 'https://razai-colaborador.vercel.app';
 
@@ -17,6 +24,7 @@ export default function HomeScreen({ navigation }: any) {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [userName, setUserName] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -36,6 +44,18 @@ export default function HomeScreen({ navigation }: any) {
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
+
+  const handleSearchFocus = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsSearchFocused(true);
+  };
+
+  const handleSearchCancel = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setSearchQuery('');
+    setIsSearchFocused(false);
+    Keyboard.dismiss();
+  };
 
   async function fetchProfile() {
     try {
@@ -158,55 +178,59 @@ export default function HomeScreen({ navigation }: any) {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={(
           <>
-            <View style={styles.heroCard}>
-              <View style={styles.heroTop}>
-                <View>
-                  <Text style={styles.brandPill}>RAZAI {role === 'admin' ? 'ADMIN' : ''}</Text>
-                  <Text style={styles.heroTitle}>{getGreeting()}, {userName}!</Text>
-                  <Text style={styles.heroSubtitle}>Controle de estoque impecável com poucos toques.</Text>
-                </View>
-                <TouchableOpacity onPress={() => signOut()} style={styles.signOutBtn}>
-                  <Ionicons name="log-out-outline" size={20} color={theme.colors.textInverse} />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.heroActions}>
-                <TouchableOpacity style={styles.heroPrimary} onPress={() => navigation.navigate('StockOutFlow')}>
-                  <Ionicons name="cut" size={20} color={theme.colors.textInverse} />
-                  <View style={styles.heroPrimaryText}>
-                    <Text style={styles.heroPrimaryLabel}>Registrar falta</Text>
-                    <Text style={styles.heroPrimaryCaption}>Fluxo guiado em 3 passos</Text>
+            {!isSearchFocused && (
+              <AnimatedCard index={0} style={styles.heroCard}>
+                <View style={styles.heroTop}>
+                  <View>
+                    <Text style={styles.brandPill}>RAZAI {role === 'admin' ? 'ADMIN' : ''}</Text>
+                    <Text style={styles.heroTitle}>{getGreeting()}, {userName}!</Text>
+                    <Text style={styles.heroSubtitle}>Controle de estoque impecável com poucos toques.</Text>
                   </View>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.statGrid}>
-                <View style={styles.statCard}>
-                  {loading ? (
-                    <Skeleton width={72} height={28} />
-                  ) : (
-                    <>
-                      <Text style={styles.statValue}>{stats.tissues}</Text>
-                      <Text style={styles.statLabel}>Tecidos</Text>
-                    </>
-                  )}
+                  <TouchableOpacity onPress={() => signOut()} style={styles.signOutBtn}>
+                    <Ionicons name="log-out-outline" size={20} color={theme.colors.textInverse} />
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.statCard}>
-                  {loading ? (
-                    <Skeleton width={72} height={28} />
-                  ) : (
-                    <>
-                      <Text style={styles.statValue}>{stats.colors}</Text>
-                      <Text style={styles.statLabel}>Cores</Text>
-                    </>
-                  )}
+                <View style={styles.heroActions}>
+                  <TouchableOpacity style={styles.heroPrimary} onPress={() => navigation.navigate('StockOutFlow')}>
+                    <Ionicons name="cut" size={20} color={theme.colors.textInverse} />
+                    <View style={styles.heroPrimaryText}>
+                      <Text style={styles.heroPrimaryLabel}>Registrar falta</Text>
+                      <Text style={styles.heroPrimaryCaption}>Fluxo guiado em 3 passos</Text>
+                    </View>
+                  </TouchableOpacity>
                 </View>
-              </View>
-            </View>
+                <View style={styles.statGrid}>
+                  <View style={styles.statCard}>
+                    {loading ? (
+                      <Skeleton width={72} height={28} />
+                    ) : (
+                      <>
+                        <Text style={styles.statValue}>{stats.tissues}</Text>
+                        <Text style={styles.statLabel}>Tecidos</Text>
+                      </>
+                    )}
+                  </View>
+                  <View style={styles.statCard}>
+                    {loading ? (
+                      <Skeleton width={72} height={28} />
+                    ) : (
+                      <>
+                        <Text style={styles.statValue}>{stats.colors}</Text>
+                        <Text style={styles.statLabel}>Cores</Text>
+                      </>
+                    )}
+                  </View>
+                </View>
+              </AnimatedCard>
+            )}
 
-            <View style={styles.searchPanel}>
-              <View style={styles.searchHeader}>
-                <Text style={styles.sectionTitle}>Busca global</Text>
-                {searching && <ActivityIndicator size="small" color={theme.colors.primary} />}
-              </View>
+            <AnimatedCard index={1} style={[styles.searchPanel, isSearchFocused && styles.searchPanelFocused]}>
+              {!isSearchFocused && (
+                <View style={styles.searchHeader}>
+                  <Text style={styles.sectionTitle}>Busca global</Text>
+                  {searching && <ActivityIndicator size="small" color={theme.colors.primary} />}
+                </View>
+              )}
               <View style={styles.searchBar}>
                 <Ionicons name="search" size={18} color={theme.colors.textSecondary} />
                 <TextInput
@@ -215,15 +239,16 @@ export default function HomeScreen({ navigation }: any) {
                   placeholderTextColor={theme.colors.textSecondary}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
+                  onFocus={handleSearchFocus}
                   autoCapitalize="none"
                 />
-                {searchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Ionicons name="close-circle" size={18} color={theme.colors.textSecondary} />
+                {(searchQuery.length > 0 || isSearchFocused) && (
+                  <TouchableOpacity onPress={handleSearchCancel}>
+                    <Text style={{ color: theme.colors.primary, fontWeight: '600', marginLeft: 8 }}>Cancelar</Text>
                   </TouchableOpacity>
                 )}
               </View>
-              {!showResults && (
+              {!showResults && !isSearchFocused && (
                 <View style={styles.guidedCard}>
                   <View style={styles.guidedIcon}>
                     <Ionicons name="sparkles-outline" size={20} color={theme.colors.primary} />
@@ -234,10 +259,10 @@ export default function HomeScreen({ navigation }: any) {
                   </View>
                 </View>
               )}
-            </View>
+            </AnimatedCard>
 
-            {role === 'admin' && (
-              <View style={{ marginHorizontal: theme.spacing.xl, marginBottom: theme.spacing.lg }}>
+            {role === 'admin' && !isSearchFocused && (
+              <AnimatedCard index={2} style={{ marginHorizontal: theme.spacing.xl, marginBottom: theme.spacing.lg }}>
                 <TouchableOpacity
                   style={styles.adminCard}
                   onPress={() => Linking.openURL(WEB_APP_URL)}
@@ -252,7 +277,7 @@ export default function HomeScreen({ navigation }: any) {
                   </View>
                   <Ionicons name="open-outline" size={20} color={theme.colors.textInverse} />
                 </TouchableOpacity>
-              </View>
+              </AnimatedCard>
             )}
           </>
         )}
@@ -438,15 +463,22 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
   },
   adminSubtitle: {
-    fontSize: theme.font.sizes.xs,
-    color: '#94a3b8', // Slate 400
-    marginTop: 2,
-    marginRight: theme.spacing.sm,
-  },
   searchPanel: {
     marginHorizontal: theme.spacing.xl,
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  searchPanelFocused: {
+    marginHorizontal: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    paddingTop: theme.spacing.md,
+  },
+  searchHeader: {or: theme.colors.surface,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
     borderColor: theme.colors.border,
