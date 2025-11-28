@@ -421,6 +421,23 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
     borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  shortcutIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  shortcutLabel: {
+    fontSize: theme.font.sizes.base,
+    fontWeight: theme.font.weights.semibold,
+    color: theme.colors.text,
+  },
   shortcutCaption: {
     fontSize: theme.font.sizes.xs,
     color: theme.colors.textSecondary,
@@ -454,23 +471,6 @@ const styles = StyleSheet.create({
     color: '#94a3b8', // Slate 400
     marginTop: 2,
     marginRight: theme.spacing.sm,
-  },
-  searchPanel: {
-    marginHorizontal: theme.spacing.xl,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  shortcutLabel: {
-    fontSize: theme.font.sizes.base,
-    fontWeight: theme.font.weights.semibold,
-    color: theme.colors.text,
-  },
-  shortcutCaption: {
-    fontSize: theme.font.sizes.xs,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
   },
   searchPanel: {
     marginHorizontal: theme.spacing.xl,
