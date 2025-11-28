@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, TextInput, FlatList, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -7,14 +7,15 @@ import { useAuth } from '../context/AuthContext';
 import { theme } from '../lib/theme';
 import { Skeleton } from '../components/Skeleton';
 
+const WEB_APP_URL = 'https://razai-colaborador.vercel.app';
+
 export default function HomeScreen({ navigation }: any) {
-  const { signOut } = useAuth();
+  const { signOut, role } = useAuth();
   const [stats, setStats] = useState({ tissues: 0, colors: 0 });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
   const shortcuts = [
     {
       id: 'stock',
@@ -120,19 +121,6 @@ export default function HomeScreen({ navigation }: any) {
     }
   }
 
-  const handleSignOut = useCallback(async () => {
-    try {
-      setSigningOut(true);
-      await signOut();
-      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-    } catch (error) {
-      console.error('Erro ao sair', error);
-      Alert.alert('Erro ao sair', 'Tente novamente.');
-    } finally {
-      setSigningOut(false);
-    }
-  }, [navigation, signOut]);
-
   // Funções handleShortage e confirmShortage movidas para StockOutFlowScreen
 
   function renderSearchResult({ item }: { item: any }) {
@@ -167,11 +155,11 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.heroCard}>
               <View style={styles.heroTop}>
                 <View>
-                  <Text style={styles.brandPill}>RAZAI</Text>
+                  <Text style={styles.brandPill}>RAZAI {role === 'admin' ? 'ADMIN' : ''}</Text>
                   <Text style={styles.heroTitle}>Operação Cutter</Text>
                   <Text style={styles.heroSubtitle}>Controle de estoque impecável com poucos toques.</Text>
                 </View>
-                <TouchableOpacity onPress={handleSignOut} disabled={signingOut} style={[styles.signOutBtn, signingOut && styles.signOutBtnDisabled]}>
+                <TouchableOpacity onPress={() => signOut()} style={styles.signOutBtn}>
                   <Ionicons name="log-out-outline" size={20} color={theme.colors.textInverse} />
                 </TouchableOpacity>
               </View>
@@ -213,6 +201,23 @@ export default function HomeScreen({ navigation }: any) {
             </View>
 
             <View style={styles.shortcutSection}>
+              {role === 'admin' && (
+                <TouchableOpacity
+                  style={[styles.adminCard, { marginBottom: theme.spacing.lg }]}
+                  onPress={() => Linking.openURL(WEB_APP_URL)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.adminIconWrap}>
+                    <Ionicons name="settings-outline" size={24} color={theme.colors.textInverse} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.adminTitle}>Painel Administrativo</Text>
+                    <Text style={styles.adminSubtitle}>Gerenciar cores, usuários e configurações avançadas via Web.</Text>
+                  </View>
+                  <Ionicons name="open-outline" size={20} color={theme.colors.textInverse} />
+                </TouchableOpacity>
+              )}
+
               <Text style={styles.sectionTitle}>Acessos rápidos</Text>
               <View style={styles.shortcutRow}>
                 {shortcuts.map((shortcut) => (
@@ -335,9 +340,6 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
     borderRadius: theme.radius.lg,
   },
-  signOutBtnDisabled: {
-    opacity: 0.6,
-  },
   heroActions: {
     marginBottom: theme.spacing.lg,
   },
@@ -419,13 +421,42 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+  shortcutCaption: {
+    fontSize: theme.font.sizes.xs,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
   },
-  shortcutIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  adminCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e293b', // Slate 800
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.lg,
     borderWidth: 1,
+    borderColor: '#334155',
+  },
+  adminIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#334155',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.md,
+  },
+  adminTitle: {
+    fontSize: theme.font.sizes.base,
+    fontWeight: theme.font.weights.bold,
+    color: theme.colors.textInverse,
+  },
+  adminSubtitle: {
+    fontSize: theme.font.sizes.xs,
+    color: '#94a3b8', // Slate 400
+    marginTop: 2,
+    marginRight: theme.spacing.sm,
+  },
+  searchPanel: {
+    marginHorizontal: theme.spacing.xl,
     borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
