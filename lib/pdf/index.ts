@@ -21,48 +21,31 @@ import {
 } from './memory-utils';
 
 /**
- * Baixa e comprime uma imagem para tamanho seguro
+ * Baixa e comprime uma imagem para uso seguro em PDF
  */
-async function downloadAndCompressImage(
-  url: string,
-  maxDimension: number = 300,
-  quality: number = 0.5
-): Promise<string | null> {
+async function downloadAndCompressImage(url: string): Promise<string | null> {
   try {
-    // Baixa a imagem
-    const filename = 'temp_' + Math.random().toString(36).substring(7) + '.jpg';
+    // 1. Download para cache local
+    const filename = url.split('/').pop() || 'temp.jpg';
     const localUri = FileSystem.cacheDirectory + filename;
     
-    const downloadResult = await Promise.race([
-      FileSystem.downloadAsync(url, localUri),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 10000)
-      )
-    ]) as FileSystem.FileSystemDownloadResult;
+    const downloadRes = await FileSystem.downloadAsync(url, localUri);
+    if (downloadRes.status !== 200) return null;
 
-    if (!downloadResult.uri) {
-      return null;
-    }
-
-    // Comprime a imagem
-    const manipulated = await ImageManipulator.manipulateAsync(
-      downloadResult.uri,
-      [{ resize: { width: maxDimension } }],
-      { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
+    // 2. Comprimir e Redimensionar (Crucial para Android)
+    // Largura 500px é suficiente para PDF (A4) e economiza MUITA RAM
+    const result = await ImageManipulator.manipulateAsync(
+      localUri,
+      [{ resize: { width: 500 } }], 
+      { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
 
-    // Converte para base64
-    const base64 = await FileSystem.readAsStringAsync(manipulated.uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    // Limpar arquivo temporário original
+    await FileSystem.deleteAsync(localUri, { idempotent: true });
 
-    // Limpa arquivos temporários
-    await FileSystem.deleteAsync(downloadResult.uri, { idempotent: true });
-    await FileSystem.deleteAsync(manipulated.uri, { idempotent: true });
-
-    return `data:image/jpeg;base64,${base64}`;
+    return result.base64 ? `data:image/jpeg;base64,${result.base64}` : null;
   } catch (error) {
-    console.warn('Failed to process image:', error);
+    console.warn('[PDF] Erro ao processar imagem:', error);
     return null;
   }
 }
@@ -95,43 +78,22 @@ export async function generateTissuePdf(tissueId: string): Promise<boolean> {
 
   console.log(`[PDF] Gerando PDF para ${tissue.name} com ${links.length} cores`);
 
-  // Decide se deve incluir imagens ou usar apenas cores
-  const useImages = links.length <= DEFAULT_PDF_CONFIG.maxTotalImages;
+  // Processar imagens em série para não estourar memória
+  const images: Array<{ linkId: string; base64: string }> = [];
   
-  let images: Array<{ linkId: string; base64: string }> = [];
+  for (const link of links) {
+    if (link.image_url) {
+      // Tenta baixar a imagem pública do Supabase
+      // Se o link.image_url for caminho relativo, construir URL completa
+      const publicUrl = link.image_url.startsWith('http') 
+        ? link.image_url 
+        : supabase.storage.from('products').getPublicUrl(link.image_url).data.publicUrl;
 
-  if (useImages) {
-    // Processa imagens em sequência para evitar pico de memória
-    for (const link of links) {
-      if (link.image_path) {
-        const publicUrl = supabase.storage
-          .from('tissue-images')
-          .getPublicUrl(link.image_path).data.publicUrl;
-
-        const base64 = await downloadAndCompressImage(
-          publicUrl,
-          DEFAULT_PDF_CONFIG.maxImageDimension,
-          DEFAULT_PDF_CONFIG.imageQuality
-        );
-
-        if (base64) {
-          images.push({ linkId: link.id, base64 });
-        }
+      const base64 = await downloadAndCompressImage(publicUrl);
+      if (base64) {
+        images.push({ linkId: link.id, base64 });
       }
     }
-
-    // Verifica se o tamanho estimado é seguro
-    const imageSizes = images.map(img => img.base64.length);
-    const memoryUsage = estimateHtmlMemoryUsage(imageSizes);
-
-    console.log(`[PDF] Memória estimada: ${formatBytes(memoryUsage.estimatedPeakMemory)}`);
-
-    if (memoryUsage.exceedsAndroidLimit) {
-      console.warn('[PDF] Memória excede limite, usando apenas cores');
-      images = []; // Fallback para cores apenas
-    }
-  } else {
-    console.log('[PDF] Muitas cores, usando apenas placeholders');
   }
 
   // Gera HTML otimizado
@@ -151,6 +113,12 @@ export async function generateTissuePdf(tissueId: string): Promise<boolean> {
   );
 
   console.log(`[PDF] HTML gerado: ${formatBytes(html.length)}`);
+
+  // Validação de memória (apenas log)
+  const estimatedSize = estimateHtmlMemoryUsage(html);
+  if (estimatedSize > ANDROID_MEMORY_LIMITS.WARNING_THRESHOLD) {
+    console.warn(`[PDF] Atenção: HTML grande (${formatBytes(estimatedSize)}). Pode falhar em devices antigos.`);
+  }
 
   // Gera PDF
   const { uri } = await Print.printToFileAsync({ html });
@@ -179,17 +147,12 @@ export async function generateLinkPdf(linkId: string): Promise<boolean> {
   if (!link) throw new Error('Vínculo não encontrado.');
 
   let imageBase64: string | null = null;
-
-  if (link.image_path) {
-    const publicUrl = supabase.storage
-      .from('tissue-images')
-      .getPublicUrl(link.image_path).data.publicUrl;
-
-    imageBase64 = await downloadAndCompressImage(
-      publicUrl,
-      400, // Um pouco maior para link individual
-      0.6
-    );
+  if (link.image_url) {
+    const publicUrl = link.image_url.startsWith('http') 
+      ? link.image_url 
+      : supabase.storage.from('products').getPublicUrl(link.image_url).data.publicUrl;
+    
+    imageBase64 = await downloadAndCompressImage(publicUrl);
   }
 
   const html = generateLinkHtml(

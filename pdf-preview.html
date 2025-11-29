@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Preview PDF - RAZAI Catálogo</title>
+  <style>
+@page { size: A4; margin: 15mm 12mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Helvetica Neue, Helvetica, Arial, sans-serif; color: #1a1a1a; background: #ffffff; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.tissue-section { page-break-before: always; page-break-inside: avoid; }
+.tissue-section:first-child { page-break-before: avoid; }
+.header { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 6mm; margin-bottom: 8mm; border-bottom: 0.5mm solid #1e3a5f; }
+.header-left { flex: 1; }
+.brand { font-size: 8pt; font-weight: 600; letter-spacing: 4px; color: #c9a961; text-transform: uppercase; margin-bottom: 2mm; }
+.tissue-name { font-size: 24pt; font-weight: 300; color: #1e3a5f; letter-spacing: 0.5px; margin-bottom: 3mm; }
+.tissue-meta { display: flex; gap: 5mm; flex-wrap: wrap; }
+.meta-item { display: flex; flex-direction: column; }
+.meta-label { font-size: 6pt; text-transform: uppercase; letter-spacing: 1px; color: #999999; margin-bottom: 0.5mm; }
+.meta-value { font-size: 9pt; font-weight: 500; color: #1a1a1a; }
+.header-right { text-align: right; }
+.sku-badge { display: inline-block; background: #fafafa; border: 0.3mm solid #e5e5e5; padding: 2mm 4mm; border-radius: 1.5mm; font-family: SF Mono, Monaco, Consolas, monospace; font-size: 9pt; font-weight: 500; letter-spacing: 1px; color: #1e3a5f; }
+.color-count { font-size: 7pt; color: #666666; margin-top: 2mm; }
+.colors-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; }
+.color-card { page-break-inside: avoid; break-inside: avoid; background: #ffffff; border: 0.3mm solid #e5e5e5; border-radius: 2mm; overflow: hidden; }
+.color-image { width: 100%; aspect-ratio: 1; overflow: hidden; position: relative; }
+.color-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.color-swatch { width: 100%; height: 100%; }
+.color-info { padding: 2.5mm 3mm; background: #ffffff; border-top: 0.3mm solid #e5e5e5; }
+.color-name { font-size: 8pt; font-weight: 600; color: #1a1a1a; margin-bottom: 1mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.color-details { display: flex; justify-content: space-between; align-items: center; }
+.color-sku { font-family: SF Mono, Monaco, Consolas, monospace; font-size: 6pt; color: #666666; letter-spacing: 0.5px; }
+.color-hex { font-family: SF Mono, Monaco, Consolas, monospace; font-size: 6pt; color: #999999; text-transform: uppercase; }
+
+/* Preview helpers */
+.preview-info { background: #fff3cd; padding: 10px; margin-bottom: 20px; border-radius: 4px; font-size: 12px; }
+.a4-page { width: 210mm; min-height: 297mm; margin: 20px auto; padding: 15mm 12mm; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+@media screen { body { background: #f0f0f0; padding: 20px; } }
+</style>
+</head>
+<body>
+  <div class="preview-info">
+    <strong>🔍 Preview do PDF</strong> - Este é o layout que será gerado. 
+    Use Ctrl+P para ver como ficará impresso. 
+    Cada tecido começa em uma nova página.
+  </div>
+  
+  <div class="a4-page">
+    
+  <div class="tissue-section">
+    <header class="header">
+      <div class="header-left">
+        <div class="brand">RAZAI TECIDOS</div>
+        <h1 class="tissue-name">Anarruga</h1>
+        <div class="tissue-meta">
+          <div class="meta-item">
+            <span class="meta-label">Largura</span>
+            <span class="meta-value">150 cm</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Composição</span>
+            <span class="meta-value">100% Poliéster</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="sku-badge">T001</div>
+        <div class="color-count">14 cores</div>
+      </div>
+    </header>
+    <div class="colors-grid">
+      
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#1a1a1a"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Preto Urbano</div>
+        <div class="color-details">
+          <span class="color-sku">T001-PT001</span>
+          <span class="color-hex">#1a1a1a</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#fafafa"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Branco Neve</div>
+        <div class="color-details">
+          <span class="color-sku">T001-BR001</span>
+          <span class="color-hex">#fafafa</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#1e3a8a"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Azul Royal</div>
+        <div class="color-details">
+          <span class="color-sku">T001-AZ001</span>
+          <span class="color-hex">#1e3a8a</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#dc2626"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Vermelho Cereja</div>
+        <div class="color-details">
+          <span class="color-sku">T001-VM001</span>
+          <span class="color-hex">#dc2626</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#059669"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Verde Esmeralda</div>
+        <div class="color-details">
+          <span class="color-sku">T001-VD001</span>
+          <span class="color-hex">#059669</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#eab308"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Amarelo Sol</div>
+        <div class="color-details">
+          <span class="color-sku">T001-AM001</span>
+          <span class="color-hex">#eab308</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#ec4899"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Rosa Pink</div>
+        <div class="color-details">
+          <span class="color-sku">T001-RS001</span>
+          <span class="color-hex">#ec4899</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#7c3aed"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Roxo Violeta</div>
+        <div class="color-details">
+          <span class="color-sku">T001-RX001</span>
+          <span class="color-hex">#7c3aed</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#ea580c"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Laranja Tangerina</div>
+        <div class="color-details">
+          <span class="color-sku">T001-LR001</span>
+          <span class="color-hex">#ea580c</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#525252"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Cinza Chumbo</div>
+        <div class="color-details">
+          <span class="color-sku">T001-CZ001</span>
+          <span class="color-hex">#525252</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#78350f"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Marrom Café</div>
+        <div class="color-details">
+          <span class="color-sku">T001-MR001</span>
+          <span class="color-hex">#78350f</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#d4c4a8"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Bege Areia</div>
+        <div class="color-details">
+          <span class="color-sku">T001-BG001</span>
+          <span class="color-hex">#d4c4a8</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#1e3a5f"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Azul Marinho</div>
+        <div class="color-details">
+          <span class="color-sku">T001-AZ002</span>
+          <span class="color-hex">#1e3a5f</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#06b6d4"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Turquesa</div>
+        <div class="color-details">
+          <span class="color-sku">T001-TQ001</span>
+          <span class="color-hex">#06b6d4</span>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+  <div class="tissue-section" style="page-break-before: always">
+    <header class="header">
+      <div class="header-left">
+        <div class="brand">RAZAI TECIDOS</div>
+        <h1 class="tissue-name">Canelado</h1>
+        <div class="tissue-meta">
+          <div class="meta-item">
+            <span class="meta-label">Largura</span>
+            <span class="meta-value">180 cm</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Composição</span>
+            <span class="meta-value">95% Algodão, 5% Elastano</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="sku-badge">T002</div>
+        <div class="color-count">6 cores</div>
+      </div>
+    </header>
+    <div class="colors-grid">
+      
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#f5f5f0"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Off White</div>
+        <div class="color-details">
+          <span class="color-sku">T002-OW001</span>
+          <span class="color-hex">#f5f5f0</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#d4a574"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Nude</div>
+        <div class="color-details">
+          <span class="color-sku">T002-ND001</span>
+          <span class="color-hex">#d4a574</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#c2410c"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Terracota</div>
+        <div class="color-details">
+          <span class="color-sku">T002-TC001</span>
+          <span class="color-hex">#c2410c</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#4d7c0f"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Musgo</div>
+        <div class="color-details">
+          <span class="color-sku">T002-MS001</span>
+          <span class="color-hex">#4d7c0f</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#7f1d1d"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Bordô</div>
+        <div class="color-details">
+          <span class="color-sku">T002-BD001</span>
+          <span class="color-hex">#7f1d1d</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-card">
+      <div class="color-image">
+        <div class="color-swatch" style="background:#134e4a"></div>
+      </div>
+      <div class="color-info">
+        <div class="color-name">Petróleo</div>
+        <div class="color-details">
+          <span class="color-sku">T002-PT001</span>
+          <span class="color-hex">#134e4a</span>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+  </div>
+</body>
+</html>
