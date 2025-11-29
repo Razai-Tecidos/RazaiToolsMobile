@@ -23,8 +23,9 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
     setGeneratingPdf(true);
     try {
       await generateTissuePdf(id);
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
+    } catch (error: any) {
+      console.error('PDF generation error:', error);
+      Alert.alert('Erro', error?.message || 'Não foi possível gerar o PDF.');
     } finally {
       setGeneratingPdf(false);
     }
@@ -206,8 +207,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   loadingOverlay: {
-    position: 'absolute',
-    inset: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',

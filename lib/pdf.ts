@@ -5,12 +5,30 @@ import { supabase } from './supabase';
 
 async function urlToBase64(url: string): Promise<string | null> {
   try {
-    const { uri } = await FileSystem.downloadAsync(
-      url,
-      FileSystem.cacheDirectory + 'temp_image_' + Math.random().toString(36).substring(7)
-    );
-    const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-    await FileSystem.deleteAsync(uri, { idempotent: true });
+    // Generate unique filename
+    const filename = 'temp_image_' + Math.random().toString(36).substring(7) + '.jpg';
+    const localUri = FileSystem.cacheDirectory + filename;
+    
+    // Download with timeout
+    const downloadResult = await Promise.race([
+      FileSystem.downloadAsync(url, localUri),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Image download timeout')), 15000)
+      )
+    ]) as FileSystem.FileSystemDownloadResult;
+    
+    if (!downloadResult.uri) {
+      console.warn('Download returned no URI for:', url);
+      return null;
+    }
+    
+    const base64 = await FileSystem.readAsStringAsync(downloadResult.uri, { 
+      encoding: FileSystem.EncodingType.Base64 
+    });
+    
+    // Cleanup
+    await FileSystem.deleteAsync(downloadResult.uri, { idempotent: true });
+    
     return `data:image/jpeg;base64,${base64}`;
   } catch (error) {
     console.error('Error converting URL to base64:', error);
