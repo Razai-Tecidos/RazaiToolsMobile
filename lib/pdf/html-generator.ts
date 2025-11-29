@@ -1,13 +1,21 @@
 /**
- * Gerador de HTML otimizado para PDFs
+ * Gerador de HTML para PDFs - Design Elegante
  * 
- * Regras:
- * 1. Cada cor em página própria (page-break-before: always)
- * 2. Imagens nunca quebram (page-break-inside: avoid)
- * 3. Compressão de imagens para reduzir memória
+ * Layout Catálogo:
+ * - Header elegante com info do tecido
+ * - Grid de cores (4 por linha, ~12 por página)
+ * - Cada tecido começa em nova página
+ * - Imagens nunca quebram entre páginas
+ * 
+ * Layout Link Individual:
+ * - Uma cor por página com destaque
  */
 
 import { DEFAULT_PDF_CONFIG, PdfGenerationConfig } from './memory-utils';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface TissueData {
   name: string;
@@ -30,8 +38,63 @@ interface ImageData {
   base64: string;
 }
 
+// ============================================================================
+// DESIGN TOKENS
+// ============================================================================
+
+const DESIGN = {
+  colors: {
+    primary: '#1e3a5f',
+    secondary: '#2d5a87',
+    accent: '#c9a961',
+    text: '#1a1a1a',
+    textMuted: '#666666',
+    textLight: '#999999',
+    border: '#e5e5e5',
+    background: '#ffffff',
+    cardBg: '#fafafa',
+  },
+  fonts: {
+    main: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+    mono: 'SF Mono, Monaco, Consolas, monospace',
+  },
+};
+
+// ============================================================================
+// CSS STYLES
+// ============================================================================
+
+const CATALOG_STYLES = `
+@page { size: A4; margin: 15mm 12mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: ${DESIGN.fonts.main}; color: ${DESIGN.colors.text}; background: ${DESIGN.colors.background}; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.tissue-section { page-break-before: always; page-break-inside: avoid; }
+.tissue-section:first-child { page-break-before: avoid; }
+.header { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 6mm; margin-bottom: 8mm; border-bottom: 0.5mm solid ${DESIGN.colors.primary}; }
+.header-left { flex: 1; }
+.brand { font-size: 8pt; font-weight: 600; letter-spacing: 4px; color: ${DESIGN.colors.accent}; text-transform: uppercase; margin-bottom: 2mm; }
+.tissue-name { font-size: 24pt; font-weight: 300; color: ${DESIGN.colors.primary}; letter-spacing: 0.5px; margin-bottom: 3mm; }
+.tissue-meta { display: flex; gap: 5mm; flex-wrap: wrap; }
+.meta-item { display: flex; flex-direction: column; }
+.meta-label { font-size: 6pt; text-transform: uppercase; letter-spacing: 1px; color: ${DESIGN.colors.textLight}; margin-bottom: 0.5mm; }
+.meta-value { font-size: 9pt; font-weight: 500; color: ${DESIGN.colors.text}; }
+.header-right { text-align: right; }
+.sku-badge { display: inline-block; background: ${DESIGN.colors.cardBg}; border: 0.3mm solid ${DESIGN.colors.border}; padding: 2mm 4mm; border-radius: 1.5mm; font-family: ${DESIGN.fonts.mono}; font-size: 9pt; font-weight: 500; letter-spacing: 1px; color: ${DESIGN.colors.primary}; }
+.color-count { font-size: 7pt; color: ${DESIGN.colors.textMuted}; margin-top: 2mm; }
+.colors-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; }
+.color-card { page-break-inside: avoid; break-inside: avoid; background: ${DESIGN.colors.background}; border: 0.3mm solid ${DESIGN.colors.border}; border-radius: 2mm; overflow: hidden; }
+.color-image { width: 100%; aspect-ratio: 1; overflow: hidden; position: relative; }
+.color-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.color-swatch { width: 100%; height: 100%; }
+.color-info { padding: 2.5mm 3mm; background: ${DESIGN.colors.background}; border-top: 0.3mm solid ${DESIGN.colors.border}; }
+.color-name { font-size: 8pt; font-weight: 600; color: ${DESIGN.colors.text}; margin-bottom: 1mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.color-details { display: flex; justify-content: space-between; align-items: center; }
+.color-sku { font-family: ${DESIGN.fonts.mono}; font-size: 6pt; color: ${DESIGN.colors.textMuted}; letter-spacing: 0.5px; }
+.color-hex { font-family: ${DESIGN.fonts.mono}; font-size: 6pt; color: ${DESIGN.colors.textLight}; text-transform: uppercase; }
+`;
+
 /**
- * Gera HTML com cada cor em página própria
+ * Gera HTML do catálogo com grid de cores elegante
  */
 export function generateOptimizedHtml(
   tissue: TissueData,
@@ -41,68 +104,63 @@ export function generateOptimizedHtml(
 ): string {
   const imageMap = new Map(images.map(img => [img.linkId, img.base64]));
   
-  // Cada cor gera uma página completa
-  const pagesHtml = links.map((link, index) => {
+  const colorCardsHtml = links.map(link => {
     const imageBase64 = imageMap.get(link.id);
     const colorHex = link.colors?.hex || '#eeeeee';
     const colorName = link.colors?.name || 'Sem nome';
     
     const imageContent = imageBase64
       ? `<img src="${imageBase64}" alt="${colorName}"/>`
-      : `<div class="swatch" style="background:${colorHex}"></div>`;
+      : `<div class="color-swatch" style="background:${colorHex}"></div>`;
     
-    const isFirst = index === 0;
-    
-    return `<div class="page"${isFirst ? '' : ' style="page-break-before:always"'}>
-<div class="header">
-<div class="brand">RAZAI</div>
-<h1 class="title">${tissue.name}</h1>
-<div class="meta">
-<span>${tissue.width}cm</span>
-<span>•</span>
-<span>${tissue.composition || 'Composição não informada'}</span>
-<span>•</span>
-<span>${tissue.sku}</span>
-</div>
-</div>
-<div class="content">
-<div class="img-box">${imageContent}</div>
-<div class="info">
-<div class="color-name">${colorName}</div>
-<div class="color-sku">${link.sku_filho}</div>
-<div class="color-hex">${colorHex.toUpperCase()}</div>
-</div>
-</div>
-<div class="footer">${tissue.name} • ${colorName} • RAZAI</div>
-</div>`;
-  }).join('\n');
+    return `<div class="color-card"><div class="color-image">${imageContent}</div><div class="color-info"><div class="color-name">${colorName}</div><div class="color-details"><span class="color-sku">${link.sku_filho}</span><span class="color-hex">${colorHex}</span></div></div></div>`;
+  }).join('');
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-@page{size:A4;margin:12mm}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Helvetica,Arial,sans-serif;color:#111;background:#fff}
-.page{min-height:100vh;display:flex;flex-direction:column;padding:5mm 0;page-break-inside:avoid}
-.header{text-align:center;padding-bottom:8mm;border-bottom:2px solid #111;margin-bottom:8mm}
-.brand{font-size:11pt;letter-spacing:3px;font-weight:bold;margin-bottom:3mm}
-.title{font-size:26pt;font-weight:300;margin-bottom:3mm}
-.meta{font-size:9pt;color:#666}
-.meta span{margin:0 2mm}
-.content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;page-break-inside:avoid}
-.img-box{width:100%;max-width:130mm;aspect-ratio:1;border-radius:4mm;overflow:hidden;box-shadow:0 2mm 8mm rgba(0,0,0,0.1);margin-bottom:8mm;page-break-inside:avoid}
-.img-box img{width:100%;height:100%;object-fit:cover;display:block}
-.swatch{width:100%;height:100%}
-.info{text-align:center;padding:5mm 8mm;background:#f8f9fa;border-radius:3mm;page-break-inside:avoid}
-.color-name{font-size:18pt;font-weight:bold;color:#1e3a5f;margin-bottom:2mm}
-.color-sku{font-size:12pt;color:#666;letter-spacing:1px;margin-bottom:2mm}
-.color-hex{font-size:10pt;color:#999;font-family:monospace}
-.footer{text-align:center;font-size:8pt;color:#aaa;margin-top:auto;padding-top:5mm}
-</style></head><body>
-${pagesHtml}
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${tissue.name} - RAZAI</title><style>${CATALOG_STYLES}</style></head><body>
+<div class="tissue-section">
+<header class="header">
+<div class="header-left">
+<div class="brand">RAZAI TECIDOS</div>
+<h1 class="tissue-name">${tissue.name}</h1>
+<div class="tissue-meta">
+<div class="meta-item"><span class="meta-label">Largura</span><span class="meta-value">${tissue.width} cm</span></div>
+<div class="meta-item"><span class="meta-label">Composição</span><span class="meta-value">${tissue.composition || 'Não informada'}</span></div>
+</div>
+</div>
+<div class="header-right">
+<div class="sku-badge">${tissue.sku}</div>
+<div class="color-count">${links.length} ${links.length === 1 ? 'cor' : 'cores'}</div>
+</div>
+</header>
+<div class="colors-grid">${colorCardsHtml}</div>
+</div>
 </body></html>`;
 }
 
+const SINGLE_LINK_STYLES = `
+@page { size: A4; margin: 15mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: ${DESIGN.fonts.main}; color: ${DESIGN.colors.text}; background: ${DESIGN.colors.background}; min-height: 100vh; display: flex; flex-direction: column; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.page { flex: 1; display: flex; flex-direction: column; padding: 5mm 0; }
+.header { text-align: center; padding-bottom: 8mm; margin-bottom: 10mm; border-bottom: 0.5mm solid ${DESIGN.colors.primary}; }
+.brand { font-size: 9pt; font-weight: 600; letter-spacing: 4px; color: ${DESIGN.colors.accent}; text-transform: uppercase; margin-bottom: 4mm; }
+.tissue-name { font-size: 28pt; font-weight: 300; color: ${DESIGN.colors.primary}; margin-bottom: 3mm; }
+.color-title { font-size: 16pt; font-weight: 600; color: ${DESIGN.colors.text}; }
+.content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.image-container { width: 100%; max-width: 140mm; aspect-ratio: 1; border-radius: 4mm; overflow: hidden; box-shadow: 0 4mm 16mm rgba(0,0,0,0.08); margin-bottom: 10mm; border: 0.3mm solid ${DESIGN.colors.border}; }
+.image-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.color-swatch { width: 100%; height: 100%; }
+.sku-display { display: inline-block; background: ${DESIGN.colors.cardBg}; border: 0.3mm solid ${DESIGN.colors.border}; padding: 3mm 8mm; border-radius: 2mm; font-family: ${DESIGN.fonts.mono}; font-size: 14pt; font-weight: 500; letter-spacing: 2px; color: ${DESIGN.colors.primary}; margin-bottom: 10mm; }
+.details-grid { width: 100%; max-width: 160mm; display: grid; grid-template-columns: repeat(2, 1fr); gap: 5mm; padding: 8mm; background: ${DESIGN.colors.cardBg}; border-radius: 3mm; border: 0.3mm solid ${DESIGN.colors.border}; }
+.detail-item { text-align: center; padding: 3mm; }
+.detail-label { font-size: 7pt; text-transform: uppercase; letter-spacing: 1.5px; color: ${DESIGN.colors.textLight}; margin-bottom: 2mm; }
+.detail-value { font-size: 11pt; font-weight: 500; color: ${DESIGN.colors.text}; }
+.footer { text-align: center; padding-top: 8mm; margin-top: auto; font-size: 8pt; color: ${DESIGN.colors.textLight}; }
+.footer-brand { font-weight: 600; letter-spacing: 2px; color: ${DESIGN.colors.primary}; }
+`;
+
 /**
- * Gera HTML para PDF de link individual (uma cor, uma página)
+ * Gera HTML para PDF de link individual (uma cor destacada)
  */
 export function generateLinkHtml(
   tissue: TissueData,
@@ -112,43 +170,27 @@ export function generateLinkHtml(
 ): string {
   const imageContent = imageBase64
     ? `<img src="${imageBase64}" alt="${color.name}"/>`
-    : `<div class="swatch" style="background:${color.hex}"></div>`;
+    : `<div class="color-swatch" style="background:${color.hex}"></div>`;
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-@page{size:A4;margin:12mm}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Helvetica,Arial,sans-serif;color:#111;background:#fff;min-height:100vh;display:flex;flex-direction:column;padding:10mm 0}
-.header{text-align:center;padding-bottom:8mm;border-bottom:2px solid #111;margin-bottom:8mm}
-.brand{font-size:11pt;letter-spacing:3px;font-weight:bold;margin-bottom:3mm}
-.title{font-size:26pt;font-weight:300;margin-bottom:3mm}
-.subtitle{font-size:16pt;font-weight:600;color:#333}
-.content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.img-box{width:100%;max-width:130mm;aspect-ratio:1;border-radius:4mm;overflow:hidden;box-shadow:0 2mm 8mm rgba(0,0,0,0.1);margin-bottom:8mm}
-.img-box img{width:100%;height:100%;object-fit:cover;display:block}
-.swatch{width:100%;height:100%}
-.sku-badge{background:#f5f5f5;padding:3mm 6mm;border-radius:2mm;font-family:monospace;font-size:14pt;letter-spacing:2px;margin-bottom:8mm}
-.details{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:5mm;border-top:1px solid #eee;padding-top:8mm}
-.detail-item{margin-bottom:3mm}
-.label{font-size:8pt;text-transform:uppercase;color:#666;letter-spacing:1px;margin-bottom:1mm}
-.value{font-size:12pt;font-weight:500}
-.footer{text-align:center;font-size:8pt;color:#aaa;margin-top:auto;padding-top:8mm}
-</style></head><body>
-<div class="header">
-<div class="brand">RAZAI</div>
-<h1 class="title">${tissue.name}</h1>
-<div class="subtitle">${color.name}</div>
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${tissue.name} - ${color.name} - RAZAI</title><style>${SINGLE_LINK_STYLES}</style></head><body>
+<div class="page">
+<header class="header">
+<div class="brand">RAZAI TECIDOS</div>
+<h1 class="tissue-name">${tissue.name}</h1>
+<div class="color-title">${color.name}</div>
+</header>
+<main class="content">
+<div class="image-container">${imageContent}</div>
+<div class="sku-display">${skuFilho}</div>
+<div class="details-grid">
+<div class="detail-item"><div class="detail-label">Largura</div><div class="detail-value">${tissue.width} cm</div></div>
+<div class="detail-item"><div class="detail-label">Composição</div><div class="detail-value">${tissue.composition || '—'}</div></div>
+<div class="detail-item"><div class="detail-label">Família</div><div class="detail-value">${color.family || '—'}</div></div>
+<div class="detail-item"><div class="detail-label">Cor HEX</div><div class="detail-value">${color.hex.toUpperCase()}</div></div>
 </div>
-<div class="content">
-<div class="img-box">${imageContent}</div>
-<div class="sku-badge">${skuFilho}</div>
-<div class="details">
-<div class="detail-item"><div class="label">Largura</div><div class="value">${tissue.width} cm</div></div>
-<div class="detail-item"><div class="label">Composição</div><div class="value">${tissue.composition || '—'}</div></div>
-<div class="detail-item"><div class="label">Família</div><div class="value">${color.family || '—'}</div></div>
-<div class="detail-item"><div class="label">Código Base</div><div class="value">${tissue.sku}</div></div>
+</main>
+<footer class="footer"><span class="footer-brand">RAZAI</span> • ${tissue.name} • ${color.name}</footer>
 </div>
-</div>
-<div class="footer">${tissue.name} • ${color.name} • RAZAI</div>
 </body></html>`;
 }
 
