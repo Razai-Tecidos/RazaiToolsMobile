@@ -58,6 +58,7 @@ export interface Link {
   image_path?: string;
   status: 'Ativo' | 'Inativo';
   created_at: string;
+  updated_at?: string;
   
   // Relacionamentos (quando join)
   tissues?: Tissue;

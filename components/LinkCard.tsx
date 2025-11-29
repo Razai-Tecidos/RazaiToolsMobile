@@ -9,8 +9,12 @@ type LinkCardProps = {
 };
 
 export default function LinkCard({ item, onPress }: LinkCardProps) {
+  // Use updated_at as cache buster if available, otherwise fallback to created_at or nothing
+  // This ensures that if the record is updated (including image change), the URL changes
+  const cacheBuster = item.updated_at ? `?t=${new Date(item.updated_at).getTime()}` : '';
+  
   const imageUrl = item.image_path 
-    ? supabase.storage.from('tissue-images').getPublicUrl(item.image_path).data.publicUrl
+    ? `${supabase.storage.from('tissue-images').getPublicUrl(item.image_path).data.publicUrl}${cacheBuster}`
     : null;
 
   return (

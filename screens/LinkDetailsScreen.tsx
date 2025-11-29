@@ -1,13 +1,15 @@
-import React from 'react';
-import { StyleSheet, Text, View, Image, ScrollView, ActivityIndicator, TouchableOpacity, Share } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, Image, ScrollView, ActivityIndicator, TouchableOpacity, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useLink } from '../hooks/useLinks';
+import { generateLinkPdf } from '../lib/pdf';
 
 export default function LinkDetailsScreen({ route, navigation }: any) {
   const { id } = route.params;
   const { data: link, isLoading: loading } = useLink(id);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   async function shareImage() {
     if (!link?.image_path) return;
@@ -19,6 +21,18 @@ export default function LinkDetailsScreen({ route, navigation }: any) {
       });
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  async function handleGeneratePdf() {
+    if (!link) return;
+    try {
+      setGeneratingPdf(true);
+      await generateLinkPdf(link.id);
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
+    } finally {
+      setGeneratingPdf(false);
     }
   }
 
@@ -38,8 +52,9 @@ export default function LinkDetailsScreen({ route, navigation }: any) {
     );
   }
 
+  // Add cache buster to force refresh image
   const imageUrl = link.image_path 
-    ? supabase.storage.from('tissue-images').getPublicUrl(link.image_path).data.publicUrl
+    ? `${supabase.storage.from('tissue-images').getPublicUrl(link.image_path).data.publicUrl}?t=${Date.now()}`
     : null;
 
   return (
@@ -54,11 +69,21 @@ export default function LinkDetailsScreen({ route, navigation }: any) {
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          {imageUrl && (
-            <TouchableOpacity style={styles.shareButton} onPress={shareImage}>
-              <Ionicons name="share-outline" size={24} color="#fff" />
+          
+          <View style={styles.actionsContainer}>
+            {imageUrl && (
+              <TouchableOpacity style={styles.actionButton} onPress={shareImage}>
+                <Ionicons name="share-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.actionButton} onPress={handleGeneratePdf} disabled={generatingPdf}>
+              {generatingPdf ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="document-text-outline" size={24} color="#fff" />
+              )}
             </TouchableOpacity>
-          )}
+          </View>
         </View>
 
         <View style={styles.detailsContainer}>
@@ -134,10 +159,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  shareButton: {
+  actionsContainer: {
     position: 'absolute',
     top: 50,
     right: 20,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
