@@ -1,14 +1,11 @@
 /**
- * Gerador de HTML para PDFs - Design Elegante
+ * Gerador de HTML para PDFs - Design Elegante com Paginação Manual
  * 
  * Layout Catálogo:
- * - Header elegante com info do tecido
- * - Grid de cores (4 por linha, ~12 por página)
- * - Cada tecido começa em nova página
- * - Imagens nunca quebram entre páginas
- * 
- * Layout Link Individual:
- * - Uma cor por página com destaque
+ * - Paginação manual para controle total de quebras
+ * - Página 1: Header completo + 12 cores
+ * - Página 2+: Header simplificado + 16 cores
+ * - Imagens otimizadas
  */
 
 import { DEFAULT_PDF_CONFIG, PdfGenerationConfig } from './memory-utils';
@@ -65,12 +62,25 @@ const DESIGN = {
 // ============================================================================
 
 const CATALOG_STYLES = `
-@page { size: A4; margin: 15mm 12mm; }
+@page { size: A4; margin: 0; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: ${DESIGN.fonts.main}; color: ${DESIGN.colors.text}; background: ${DESIGN.colors.background}; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.tissue-section { page-break-before: always; page-break-inside: avoid; }
-.tissue-section:first-child { page-break-before: avoid; }
-.header { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 6mm; margin-bottom: 8mm; border-bottom: 0.5mm solid ${DESIGN.colors.primary}; }
+body { font-family: ${DESIGN.fonts.main}; color: ${DESIGN.colors.text}; background: ${DESIGN.colors.background}; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Container da Página A4 */
+.page {
+  width: 210mm;
+  height: 297mm;
+  padding: 15mm 12mm;
+  position: relative;
+  page-break-after: always;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.page:last-child { page-break-after: avoid; }
+
+/* Header Página 1 */
+.header-full { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 6mm; margin-bottom: 6mm; border-bottom: 0.5mm solid ${DESIGN.colors.primary}; flex-shrink: 0; }
 .header-left { flex: 1; }
 .brand { font-size: 8pt; font-weight: 600; letter-spacing: 4px; color: ${DESIGN.colors.accent}; text-transform: uppercase; margin-bottom: 2mm; }
 .tissue-name { font-size: 24pt; font-weight: 300; color: ${DESIGN.colors.primary}; letter-spacing: 0.5px; margin-bottom: 3mm; }
@@ -81,20 +91,60 @@ body { font-family: ${DESIGN.fonts.main}; color: ${DESIGN.colors.text}; backgrou
 .header-right { text-align: right; }
 .sku-badge { display: inline-block; background: ${DESIGN.colors.cardBg}; border: 0.3mm solid ${DESIGN.colors.border}; padding: 2mm 4mm; border-radius: 1.5mm; font-family: ${DESIGN.fonts.mono}; font-size: 9pt; font-weight: 500; letter-spacing: 1px; color: ${DESIGN.colors.primary}; }
 .color-count { font-size: 7pt; color: ${DESIGN.colors.textMuted}; margin-top: 2mm; }
-.colors-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; }
-.color-card { page-break-inside: avoid; break-inside: avoid; background: ${DESIGN.colors.background}; border: 0.3mm solid ${DESIGN.colors.border}; border-radius: 2mm; overflow: hidden; }
-.color-image { width: 100%; aspect-ratio: 1; overflow: hidden; position: relative; }
+
+/* Header Simplificado (Pág 2+) */
+.header-simple { display: flex; align-items: center; justify-content: space-between; padding-bottom: 4mm; margin-bottom: 6mm; border-bottom: 0.3mm solid ${DESIGN.colors.border}; flex-shrink: 0; }
+.simple-title { font-size: 12pt; font-weight: 600; color: ${DESIGN.colors.primary}; }
+.simple-meta { font-size: 8pt; color: ${DESIGN.colors.textMuted}; }
+
+/* Grid de Cores */
+.colors-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; align-content: start; flex: 1; }
+.color-card { background: ${DESIGN.colors.background}; border: 0.3mm solid ${DESIGN.colors.border}; border-radius: 2mm; overflow: hidden; height: fit-content; }
+.color-image { width: 100%; aspect-ratio: 1; overflow: hidden; position: relative; background: ${DESIGN.colors.cardBg}; }
 .color-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .color-swatch { width: 100%; height: 100%; }
-.color-info { padding: 2.5mm 3mm; background: ${DESIGN.colors.background}; border-top: 0.3mm solid ${DESIGN.colors.border}; }
-.color-name { font-size: 8pt; font-weight: 600; color: ${DESIGN.colors.text}; margin-bottom: 1mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.color-info { padding: 2mm 2.5mm; background: ${DESIGN.colors.background}; border-top: 0.3mm solid ${DESIGN.colors.border}; }
+.color-name { font-size: 7.5pt; font-weight: 600; color: ${DESIGN.colors.text}; margin-bottom: 1mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .color-details { display: flex; justify-content: space-between; align-items: center; }
-.color-sku { font-family: ${DESIGN.fonts.mono}; font-size: 6pt; color: ${DESIGN.colors.textMuted}; letter-spacing: 0.5px; }
-.color-hex { font-family: ${DESIGN.fonts.mono}; font-size: 6pt; color: ${DESIGN.colors.textLight}; text-transform: uppercase; }
+.color-sku { font-family: ${DESIGN.fonts.mono}; font-size: 5.5pt; color: ${DESIGN.colors.textMuted}; letter-spacing: 0.5px; }
+.color-hex { font-family: ${DESIGN.fonts.mono}; font-size: 5.5pt; color: ${DESIGN.colors.textLight}; text-transform: uppercase; }
+
+/* Footer de Página */
+.page-footer { position: absolute; bottom: 8mm; left: 0; right: 0; text-align: center; font-size: 7pt; color: ${DESIGN.colors.textLight}; }
 `;
 
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function renderColorCard(link: LinkData, imageBase64?: string): string {
+  const colorHex = link.colors?.hex || '#eeeeee';
+  const colorName = link.colors?.name || 'Sem nome';
+  
+  const imageContent = imageBase64
+    ? `<img src="${imageBase64}" alt="${colorName}"/>`
+    : `<div class="color-swatch" style="background:${colorHex}"></div>`;
+  
+  return `
+    <div class="color-card">
+      <div class="color-image">${imageContent}</div>
+      <div class="color-info">
+        <div class="color-name">${colorName}</div>
+        <div class="color-details">
+          <span class="color-sku">${link.sku_filho}</span>
+          <span class="color-hex">${colorHex}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================================
+// MAIN GENERATOR
+// ============================================================================
+
 /**
- * Gera HTML do catálogo com grid de cores elegante
+ * Gera HTML do catálogo com grid de cores elegante e paginação manual
  */
 export function generateOptimizedHtml(
   tissue: TissueData,
@@ -104,38 +154,79 @@ export function generateOptimizedHtml(
 ): string {
   const imageMap = new Map(images.map(img => [img.linkId, img.base64]));
   
-  const colorCardsHtml = links.map(link => {
-    const imageBase64 = imageMap.get(link.id);
-    const colorHex = link.colors?.hex || '#eeeeee';
-    const colorName = link.colors?.name || 'Sem nome';
-    
-    const imageContent = imageBase64
-      ? `<img src="${imageBase64}" alt="${colorName}"/>`
-      : `<div class="color-swatch" style="background:${colorHex}"></div>`;
-    
-    return `<div class="color-card"><div class="color-image">${imageContent}</div><div class="color-info"><div class="color-name">${colorName}</div><div class="color-details"><span class="color-sku">${link.sku_filho}</span><span class="color-hex">${colorHex}</span></div></div></div>`;
-  }).join('');
+  // Configuração de Paginação
+  const ITEMS_PER_PAGE_1 = 12; // Menos itens na pág 1 por causa do header grande
+  const ITEMS_PER_PAGE_N = 16; // Mais itens nas outras páginas
 
-  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${tissue.name} - RAZAI</title><style>${CATALOG_STYLES}</style></head><body>
-<div class="tissue-section">
-<header class="header">
-<div class="header-left">
-<div class="brand">RAZAI TECIDOS</div>
-<h1 class="tissue-name">${tissue.name}</h1>
-<div class="tissue-meta">
-<div class="meta-item"><span class="meta-label">Largura</span><span class="meta-value">${tissue.width} cm</span></div>
-<div class="meta-item"><span class="meta-label">Composição</span><span class="meta-value">${tissue.composition || 'Não informada'}</span></div>
-</div>
-</div>
-<div class="header-right">
-<div class="sku-badge">${tissue.sku}</div>
-<div class="color-count">${links.length} ${links.length === 1 ? 'cor' : 'cores'}</div>
-</div>
-</header>
-<div class="colors-grid">${colorCardsHtml}</div>
-</div>
-</body></html>`;
+  const pagesHtml: string[] = [];
+  
+  // Separa itens da primeira página
+  const page1Links = links.slice(0, ITEMS_PER_PAGE_1);
+  const remainingLinks = links.slice(ITEMS_PER_PAGE_1);
+
+  // --- PÁGINA 1 ---
+  const page1Cards = page1Links.map(link => renderColorCard(link, imageMap.get(link.id))).join('');
+  
+  pagesHtml.push(`
+    <div class="page">
+      <header class="header-full">
+        <div class="header-left">
+          <div class="brand">RAZAI TECIDOS</div>
+          <h1 class="tissue-name">${tissue.name}</h1>
+          <div class="tissue-meta">
+            <div class="meta-item"><span class="meta-label">Largura</span><span class="meta-value">${tissue.width} cm</span></div>
+            <div class="meta-item"><span class="meta-label">Composição</span><span class="meta-value">${tissue.composition || 'Não informada'}</span></div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="sku-badge">${tissue.sku}</div>
+          <div class="color-count">${links.length} ${links.length === 1 ? 'cor' : 'cores'}</div>
+        </div>
+      </header>
+      <div class="colors-grid">
+        ${page1Cards}
+      </div>
+      <div class="page-footer">Página 1</div>
+    </div>
+  `);
+
+  // --- PÁGINAS SUBSEQUENTES ---
+  let currentPage = 2;
+  for (let i = 0; i < remainingLinks.length; i += ITEMS_PER_PAGE_N) {
+    const pageLinks = remainingLinks.slice(i, i + ITEMS_PER_PAGE_N);
+    const pageCards = pageLinks.map(link => renderColorCard(link, imageMap.get(link.id))).join('');
+
+    pagesHtml.push(`
+      <div class="page">
+        <header class="header-simple">
+          <div class="simple-title">${tissue.name} <span style="font-weight:400; color:#999">(cont.)</span></div>
+          <div class="simple-meta">${tissue.sku}</div>
+        </header>
+        <div class="colors-grid">
+          ${pageCards}
+        </div>
+        <div class="page-footer">Página ${currentPage}</div>
+      </div>
+    `);
+    currentPage++;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>${tissue.name} - RAZAI</title>
+  <style>${CATALOG_STYLES}</style>
+</head>
+<body>
+  ${pagesHtml.join('')}
+</body>
+</html>`;
 }
+
+// ============================================================================
+// SINGLE LINK GENERATOR (Mantido igual, apenas re-exportado)
+// ============================================================================
 
 const SINGLE_LINK_STYLES = `
 @page { size: A4; margin: 15mm; }

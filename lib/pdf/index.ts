@@ -14,7 +14,6 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../supabase';
 import { generateOptimizedHtml, generateLinkHtml } from './html-generator';
 import { 
-  estimateHtmlMemoryUsage, 
   ANDROID_MEMORY_LIMITS,
   formatBytes,
   DEFAULT_PDF_CONFIG,
@@ -33,11 +32,11 @@ async function downloadAndCompressImage(url: string): Promise<string | null> {
     if (downloadRes.status !== 200) return null;
 
     // 2. Comprimir e Redimensionar (Crucial para Android)
-    // Largura 500px é suficiente para PDF (A4) e economiza MUITA RAM
+    // Largura 350px é suficiente para PDF (grid pequeno) e economiza MUITA RAM
     const result = await ImageManipulator.manipulateAsync(
       localUri,
-      [{ resize: { width: 500 } }], 
-      { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      [{ resize: { width: 350 } }], 
+      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
 
     // Limpar arquivo temporário original
@@ -115,9 +114,9 @@ export async function generateTissuePdf(tissueId: string): Promise<boolean> {
   console.log(`[PDF] HTML gerado: ${formatBytes(html.length)}`);
 
   // Validação de memória (apenas log)
-  const estimatedSize = estimateHtmlMemoryUsage(html);
-  if (estimatedSize > ANDROID_MEMORY_LIMITS.WARNING_THRESHOLD) {
-    console.warn(`[PDF] Atenção: HTML grande (${formatBytes(estimatedSize)}). Pode falhar em devices antigos.`);
+  const htmlSize = html.length;
+  if (htmlSize > ANDROID_MEMORY_LIMITS.SAFE_ALLOCATION) {
+    console.warn(`[PDF] Atenção: HTML grande (${formatBytes(htmlSize)}). Pode falhar em devices antigos.`);
   }
 
   // Gera PDF

@@ -7,7 +7,10 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-// Simula os design tokens e estilos do html-generator.ts
+// ============================================================================
+// DESIGN TOKENS & STYLES (Copiado de html-generator.ts)
+// ============================================================================
+
 const DESIGN = {
   colors: {
     primary: '#1e3a5f',
@@ -27,12 +30,25 @@ const DESIGN = {
 };
 
 const CATALOG_STYLES = `
-@page { size: A4; margin: 15mm 12mm; }
+@page { size: A4; margin: 0; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: ${DESIGN.fonts.main}; color: ${DESIGN.colors.text}; background: ${DESIGN.colors.background}; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.tissue-section { page-break-before: always; page-break-inside: avoid; }
-.tissue-section:first-child { page-break-before: avoid; }
-.header { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 6mm; margin-bottom: 8mm; border-bottom: 0.5mm solid ${DESIGN.colors.primary}; }
+body { font-family: ${DESIGN.fonts.main}; color: ${DESIGN.colors.text}; background: #f0f0f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+/* Container da Página A4 */
+.page {
+  width: 210mm;
+  height: 297mm;
+  padding: 15mm 12mm;
+  position: relative;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Página 1 */
+.header-full { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 6mm; margin-bottom: 6mm; border-bottom: 0.5mm solid ${DESIGN.colors.primary}; flex-shrink: 0; }
 .header-left { flex: 1; }
 .brand { font-size: 8pt; font-weight: 600; letter-spacing: 4px; color: ${DESIGN.colors.accent}; text-transform: uppercase; margin-bottom: 2mm; }
 .tissue-name { font-size: 24pt; font-weight: 300; color: ${DESIGN.colors.primary}; letter-spacing: 0.5px; margin-bottom: 3mm; }
@@ -43,64 +59,65 @@ body { font-family: ${DESIGN.fonts.main}; color: ${DESIGN.colors.text}; backgrou
 .header-right { text-align: right; }
 .sku-badge { display: inline-block; background: ${DESIGN.colors.cardBg}; border: 0.3mm solid ${DESIGN.colors.border}; padding: 2mm 4mm; border-radius: 1.5mm; font-family: ${DESIGN.fonts.mono}; font-size: 9pt; font-weight: 500; letter-spacing: 1px; color: ${DESIGN.colors.primary}; }
 .color-count { font-size: 7pt; color: ${DESIGN.colors.textMuted}; margin-top: 2mm; }
-.colors-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; }
-.color-card { page-break-inside: avoid; break-inside: avoid; background: ${DESIGN.colors.background}; border: 0.3mm solid ${DESIGN.colors.border}; border-radius: 2mm; overflow: hidden; }
-.color-image { width: 100%; aspect-ratio: 1; overflow: hidden; position: relative; }
+
+/* Header Simplificado (Pág 2+) */
+.header-simple { display: flex; align-items: center; justify-content: space-between; padding-bottom: 4mm; margin-bottom: 6mm; border-bottom: 0.3mm solid ${DESIGN.colors.border}; flex-shrink: 0; }
+.simple-title { font-size: 12pt; font-weight: 600; color: ${DESIGN.colors.primary}; }
+.simple-meta { font-size: 8pt; color: ${DESIGN.colors.textMuted}; }
+
+/* Grid de Cores */
+.colors-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; align-content: start; flex: 1; }
+.color-card { background: ${DESIGN.colors.background}; border: 0.3mm solid ${DESIGN.colors.border}; border-radius: 2mm; overflow: hidden; height: fit-content; }
+.color-image { width: 100%; aspect-ratio: 1; overflow: hidden; position: relative; background: ${DESIGN.colors.cardBg}; }
 .color-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .color-swatch { width: 100%; height: 100%; }
-.color-info { padding: 2.5mm 3mm; background: ${DESIGN.colors.background}; border-top: 0.3mm solid ${DESIGN.colors.border}; }
-.color-name { font-size: 8pt; font-weight: 600; color: ${DESIGN.colors.text}; margin-bottom: 1mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.color-info { padding: 2mm 2.5mm; background: ${DESIGN.colors.background}; border-top: 0.3mm solid ${DESIGN.colors.border}; }
+.color-name { font-size: 7.5pt; font-weight: 600; color: ${DESIGN.colors.text}; margin-bottom: 1mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .color-details { display: flex; justify-content: space-between; align-items: center; }
-.color-sku { font-family: ${DESIGN.fonts.mono}; font-size: 6pt; color: ${DESIGN.colors.textMuted}; letter-spacing: 0.5px; }
-.color-hex { font-family: ${DESIGN.fonts.mono}; font-size: 6pt; color: ${DESIGN.colors.textLight}; text-transform: uppercase; }
+.color-sku { font-family: ${DESIGN.fonts.mono}; font-size: 5.5pt; color: ${DESIGN.colors.textMuted}; letter-spacing: 0.5px; }
+.color-hex { font-family: ${DESIGN.fonts.mono}; font-size: 5.5pt; color: ${DESIGN.colors.textLight}; text-transform: uppercase; }
 
-/* Preview helpers */
-.preview-info { background: #fff3cd; padding: 10px; margin-bottom: 20px; border-radius: 4px; font-size: 12px; }
-.a4-page { width: 210mm; min-height: 297mm; margin: 20px auto; padding: 15mm 12mm; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-@media screen { body { background: #f0f0f0; padding: 20px; } }
+/* Footer de Página */
+.page-footer { position: absolute; bottom: 8mm; left: 0; right: 0; text-align: center; font-size: 7pt; color: ${DESIGN.colors.textLight}; }
+
+.preview-info { background: #fff3cd; padding: 10px; border-radius: 4px; font-size: 12px; width: 210mm; text-align: center; }
 `;
 
-// Dados de teste - simula tecidos reais
+// ============================================================================
+// DADOS DE TESTE
+// ============================================================================
+
+// Gera muitas cores para testar paginação
+const generateColors = (count, prefix) => {
+  return Array.from({ length: count }).map((_, i) => ({
+    name: `Cor Teste ${i + 1}`,
+    hex: ['#1a1a1a', '#dc2626', '#059669', '#eab308', '#2563eb'][i % 5],
+    sku: `${prefix}-C${String(i + 1).padStart(3, '0')}`
+  }));
+};
+
 const testTissues = [
   {
-    name: 'Anarruga',
+    name: 'Anarruga (Muitas Cores)',
     sku: 'T001',
     width: 150,
     composition: '100% Poliéster',
-    colors: [
-      { name: 'Preto Urbano', hex: '#1a1a1a', sku: 'T001-PT001' },
-      { name: 'Branco Neve', hex: '#fafafa', sku: 'T001-BR001' },
-      { name: 'Azul Royal', hex: '#1e3a8a', sku: 'T001-AZ001' },
-      { name: 'Vermelho Cereja', hex: '#dc2626', sku: 'T001-VM001' },
-      { name: 'Verde Esmeralda', hex: '#059669', sku: 'T001-VD001' },
-      { name: 'Amarelo Sol', hex: '#eab308', sku: 'T001-AM001' },
-      { name: 'Rosa Pink', hex: '#ec4899', sku: 'T001-RS001' },
-      { name: 'Roxo Violeta', hex: '#7c3aed', sku: 'T001-RX001' },
-      { name: 'Laranja Tangerina', hex: '#ea580c', sku: 'T001-LR001' },
-      { name: 'Cinza Chumbo', hex: '#525252', sku: 'T001-CZ001' },
-      { name: 'Marrom Café', hex: '#78350f', sku: 'T001-MR001' },
-      { name: 'Bege Areia', hex: '#d4c4a8', sku: 'T001-BG001' },
-      { name: 'Azul Marinho', hex: '#1e3a5f', sku: 'T001-AZ002' },
-      { name: 'Turquesa', hex: '#06b6d4', sku: 'T001-TQ001' },
-    ]
+    colors: generateColors(30, 'T001') // 30 cores = 12 (pág 1) + 16 (pág 2) + 2 (pág 3)
   },
   {
-    name: 'Canelado',
+    name: 'Canelado (Poucas Cores)',
     sku: 'T002',
     width: 180,
-    composition: '95% Algodão, 5% Elastano',
-    colors: [
-      { name: 'Off White', hex: '#f5f5f0', sku: 'T002-OW001' },
-      { name: 'Nude', hex: '#d4a574', sku: 'T002-ND001' },
-      { name: 'Terracota', hex: '#c2410c', sku: 'T002-TC001' },
-      { name: 'Musgo', hex: '#4d7c0f', sku: 'T002-MS001' },
-      { name: 'Bordô', hex: '#7f1d1d', sku: 'T002-BD001' },
-      { name: 'Petróleo', hex: '#134e4a', sku: 'T002-PT001' },
-    ]
+    composition: '95% Algodão',
+    colors: generateColors(6, 'T002') // 6 cores = Apenas pág 1
   }
 ];
 
-function generateColorCard(color) {
+// ============================================================================
+// GERADOR
+// ============================================================================
+
+function renderColorCard(color) {
   return `
     <div class="color-card">
       <div class="color-image">
@@ -113,44 +130,65 @@ function generateColorCard(color) {
           <span class="color-hex">${color.hex}</span>
         </div>
       </div>
-    </div>`;
+    </div>
+  `;
 }
 
-function generateTissueSection(tissue, isFirst) {
-  const colorCards = tissue.colors.map(generateColorCard).join('');
+function generateTissuePages(tissue) {
+  const ITEMS_PER_PAGE_1 = 12;
+  const ITEMS_PER_PAGE_N = 16;
+  const pagesHtml = [];
   
-  return `
-  <div class="tissue-section"${isFirst ? '' : ' style="page-break-before: always"'}>
-    <header class="header">
-      <div class="header-left">
-        <div class="brand">RAZAI TECIDOS</div>
-        <h1 class="tissue-name">${tissue.name}</h1>
-        <div class="tissue-meta">
-          <div class="meta-item">
-            <span class="meta-label">Largura</span>
-            <span class="meta-value">${tissue.width} cm</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Composição</span>
-            <span class="meta-value">${tissue.composition}</span>
+  const page1Links = tissue.colors.slice(0, ITEMS_PER_PAGE_1);
+  const remainingLinks = tissue.colors.slice(ITEMS_PER_PAGE_1);
+
+  // PÁGINA 1
+  const page1Cards = page1Links.map(renderColorCard).join('');
+  pagesHtml.push(`
+    <div class="page">
+      <header class="header-full">
+        <div class="header-left">
+          <div class="brand">RAZAI TECIDOS</div>
+          <h1 class="tissue-name">${tissue.name}</h1>
+          <div class="tissue-meta">
+            <div class="meta-item"><span class="meta-label">Largura</span><span class="meta-value">${tissue.width} cm</span></div>
+            <div class="meta-item"><span class="meta-label">Composição</span><span class="meta-value">${tissue.composition}</span></div>
           </div>
         </div>
-      </div>
-      <div class="header-right">
-        <div class="sku-badge">${tissue.sku}</div>
-        <div class="color-count">${tissue.colors.length} cores</div>
-      </div>
-    </header>
-    <div class="colors-grid">
-      ${colorCards}
+        <div class="header-right">
+          <div class="sku-badge">${tissue.sku}</div>
+          <div class="color-count">${tissue.colors.length} cores</div>
+        </div>
+      </header>
+      <div class="colors-grid">${page1Cards}</div>
+      <div class="page-footer">Página 1</div>
     </div>
-  </div>`;
+  `);
+
+  // PÁGINAS SUBSEQUENTES
+  let currentPage = 2;
+  for (let i = 0; i < remainingLinks.length; i += ITEMS_PER_PAGE_N) {
+    const pageLinks = remainingLinks.slice(i, i + ITEMS_PER_PAGE_N);
+    const pageCards = pageLinks.map(renderColorCard).join('');
+
+    pagesHtml.push(`
+      <div class="page">
+        <header class="header-simple">
+          <div class="simple-title">${tissue.name} <span style="font-weight:400; color:#999">(cont.)</span></div>
+          <div class="simple-meta">${tissue.sku}</div>
+        </header>
+        <div class="colors-grid">${pageCards}</div>
+        <div class="page-footer">Página ${currentPage}</div>
+      </div>
+    `);
+    currentPage++;
+  }
+
+  return pagesHtml.join('');
 }
 
 function generatePreviewHtml() {
-  const tissueSections = testTissues.map((tissue, i) => 
-    generateTissueSection(tissue, i === 0)
-  ).join('');
+  const allPages = testTissues.map(generateTissuePages).join('');
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -162,14 +200,11 @@ function generatePreviewHtml() {
 </head>
 <body>
   <div class="preview-info">
-    <strong>🔍 Preview do PDF</strong> - Este é o layout que será gerado. 
-    Use Ctrl+P para ver como ficará impresso. 
-    Cada tecido começa em uma nova página.
+    <strong>🔍 Preview do PDF (Paginação Manual)</strong><br>
+    Verifique se as quebras de página estão corretas.
+    O Anarruga deve ter 3 páginas (12 + 16 + 2 itens).
   </div>
-  
-  <div class="a4-page">
-    ${tissueSections}
-  </div>
+  ${allPages}
 </body>
 </html>`;
 }
