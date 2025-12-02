@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, TouchableOpacity, Image, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,9 +43,9 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
     }
   }
 
-  function renderItem({ item }: { item: any }) {
+  const renderItem = useCallback(({ item }: { item: any }) => {
     const imageUrl = item.image_path 
-      ? `${supabase.storage.from('tissue-images').getPublicUrl(item.image_path).data.publicUrl}?t=${Date.now()}`
+      ? supabase.storage.from('tissue-images').getPublicUrl(item.image_path).data.publicUrl
       : null;
 
     return (
@@ -55,7 +55,12 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
       >
         <View style={styles.imageContainer}>
           {imageUrl ? (
-            <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+            <Image 
+              source={{ uri: imageUrl }} 
+              style={styles.image} 
+              resizeMode="cover"
+              fadeDuration={300}
+            />
           ) : (
             <View style={[styles.placeholder, { backgroundColor: item.colors?.hex || '#ccc' }]} />
           )}
@@ -64,7 +69,7 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
         <Text style={styles.cardSku}>{item.sku_filho}</Text>
       </TouchableOpacity>
     );
-  }
+  }, [navigation]);
 
   if (loading) {
     return (
@@ -100,6 +105,10 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={styles.columnWrapper}
         ListEmptyComponent={<Text style={styles.emptyText}>Nenhum vínculo encontrado.</Text>}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews={true}
       />
 
       <ShareSheet 
