@@ -45,7 +45,7 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
 
   function renderItem({ item }: { item: any }) {
     const imageUrl = item.image_path 
-      ? supabase.storage.from('tissue-images').getPublicUrl(item.image_path).data.publicUrl
+      ? `${supabase.storage.from('tissue-images').getPublicUrl(item.image_path).data.publicUrl}?t=${Date.now()}`
       : null;
 
     return (

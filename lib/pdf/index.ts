@@ -81,12 +81,12 @@ export async function generateTissuePdf(tissueId: string): Promise<boolean> {
   const images: Array<{ linkId: string; base64: string }> = [];
   
   for (const link of links) {
-    if (link.image_url) {
+    if (link.image_path) {
       // Tenta baixar a imagem pública do Supabase
-      // Se o link.image_url for caminho relativo, construir URL completa
-      const publicUrl = link.image_url.startsWith('http') 
-        ? link.image_url 
-        : supabase.storage.from('products').getPublicUrl(link.image_url).data.publicUrl;
+      // Se o link.image_path for caminho relativo, construir URL completa
+      const publicUrl = link.image_path.startsWith('http') 
+        ? link.image_path 
+        : supabase.storage.from('tissue-images').getPublicUrl(link.image_path).data.publicUrl;
 
       const base64 = await downloadAndCompressImage(publicUrl);
       if (base64) {
@@ -146,10 +146,10 @@ export async function generateLinkPdf(linkId: string): Promise<boolean> {
   if (!link) throw new Error('Vínculo não encontrado.');
 
   let imageBase64: string | null = null;
-  if (link.image_url) {
-    const publicUrl = link.image_url.startsWith('http') 
-      ? link.image_url 
-      : supabase.storage.from('products').getPublicUrl(link.image_url).data.publicUrl;
+  if (link.image_path) {
+    const publicUrl = link.image_path.startsWith('http') 
+      ? link.image_path 
+      : supabase.storage.from('tissue-images').getPublicUrl(link.image_path).data.publicUrl;
     
     imageBase64 = await downloadAndCompressImage(publicUrl);
   }
