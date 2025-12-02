@@ -155,8 +155,8 @@ export function generateOptimizedHtml(
   const imageMap = new Map(images.map(img => [img.linkId, img.base64]));
   
   // Configuração de Paginação
-  const ITEMS_PER_PAGE_1 = 12; // Menos itens na pág 1 por causa do header grande
-  const ITEMS_PER_PAGE_N = 16; // Mais itens nas outras páginas
+  const ITEMS_PER_PAGE_1 = 6; // Reduzido para 6 para garantir que cabe com o header
+  const ITEMS_PER_PAGE_N = 10; // Reduzido para 10 para evitar cortes no rodapé
 
   const pagesHtml: string[] = [];
   

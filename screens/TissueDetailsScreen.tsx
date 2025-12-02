@@ -60,6 +60,7 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
               style={styles.image} 
               resizeMode="cover"
               fadeDuration={300}
+              resizeMethod="resize"
             />
           ) : (
             <View style={[styles.placeholder, { backgroundColor: item.colors?.hex || '#ccc' }]} />
@@ -105,9 +106,9 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={styles.columnWrapper}
         ListEmptyComponent={<Text style={styles.emptyText}>Nenhum vínculo encontrado.</Text>}
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={5}
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        windowSize={3}
         removeClippedSubviews={true}
       />
 
