@@ -48,16 +48,18 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
       ? supabase.storage.from('tissue-images').getPublicUrl(item.image_path).data.publicUrl
       : null;
 
+    const isInactive = item.status === 'Inativo';
+
     return (
       <TouchableOpacity 
-        style={styles.card}
+        style={[styles.card, isInactive && { opacity: 0.7 }]}
         onPress={() => navigation.navigate('LinkDetails', { id: item.id })}
       >
         <View style={styles.imageContainer}>
           {imageUrl ? (
             <Image 
               source={{ uri: imageUrl }} 
-              style={styles.image} 
+              style={[styles.image, isInactive && { opacity: 0.6 }]} 
               resizeMode="cover"
               fadeDuration={300}
               resizeMethod="resize"
@@ -68,6 +70,9 @@ export default function TissueDetailsScreen({ route, navigation }: any) {
         </View>
         <Text style={styles.cardTitle} numberOfLines={1}>{item.colors?.name}</Text>
         <Text style={styles.cardSku}>{item.sku_filho}</Text>
+        <Text style={[styles.statusText, { color: isInactive ? '#E03131' : '#2F9E44' }]}>
+          {isInactive ? 'INDISPONÍVEL' : 'DISPONÍVEL'}
+        </Text>
       </TouchableOpacity>
     );
   }, [navigation]);
@@ -222,5 +227,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 100,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginTop: 4,
+    textTransform: 'uppercase',
   },
 });

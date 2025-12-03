@@ -22,7 +22,7 @@ export function useTissueDetails(id: string) {
           colors (*)
         `)
         .eq('tissue_id', id)
-        .eq('status', 'Ativo');
+        .eq('tissue_id', id);
 
       if (linksError) throw linksError;
 
