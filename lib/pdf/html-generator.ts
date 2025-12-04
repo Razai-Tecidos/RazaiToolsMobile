@@ -98,7 +98,7 @@ body { font-family: ${DESIGN.fonts.main}; color: ${DESIGN.colors.text}; backgrou
 .simple-meta { font-size: 8pt; color: ${DESIGN.colors.textMuted}; }
 
 /* Grid de Cores */
-.colors-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; align-content: start; flex: 1; }
+.colors-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; align-content: start; flex: 1; }
 .color-card { background: ${DESIGN.colors.background}; border: 0.3mm solid ${DESIGN.colors.border}; border-radius: 2mm; overflow: hidden; height: fit-content; }
 .color-image { width: 100%; aspect-ratio: 1; overflow: hidden; position: relative; background: ${DESIGN.colors.cardBg}; }
 .color-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -155,8 +155,8 @@ export function generateOptimizedHtml(
   const imageMap = new Map(images.map(img => [img.linkId, img.base64]));
   
   // Configuração de Paginação
-  const ITEMS_PER_PAGE_1 = 6; // Reduzido para 6 para garantir que cabe com o header
-  const ITEMS_PER_PAGE_N = 10; // Reduzido para 10 para evitar cortes no rodapé
+  const ITEMS_PER_PAGE_1 = 9; // 9 itens na primeira página
+  const ITEMS_PER_PAGE_N = 9; // 9 itens nas demais páginas
 
   const pagesHtml: string[] = [];
   
@@ -198,11 +198,7 @@ export function generateOptimizedHtml(
 
     pagesHtml.push(`
       <div class="page">
-        <header class="header-simple">
-          <div class="simple-title">${tissue.name} <span style="font-weight:400; color:#999">(cont.)</span></div>
-          <div class="simple-meta">${tissue.sku}</div>
-        </header>
-        <div class="colors-grid">
+        <div class="colors-grid" style="margin-top: 0;">
           ${pageCards}
         </div>
         <div class="page-footer">Página ${currentPage}</div>
