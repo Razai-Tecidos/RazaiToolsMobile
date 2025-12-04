@@ -32,11 +32,11 @@ async function downloadAndCompressImage(url: string): Promise<string | null> {
     if (downloadRes.status !== 200) return null;
 
     // 2. Comprimir e Redimensionar (Crucial para Android)
-    // Largura 350px é suficiente para PDF (grid pequeno) e economiza MUITA RAM
+    // Largura 800px é suficiente para PDF (grid pequeno) e economiza MUITA RAM
     const result = await ImageManipulator.manipulateAsync(
       localUri,
-      [{ resize: { width: 350 } }], 
-      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      [{ resize: { width: 800 } }], 
+      { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
 
     // Limpar arquivo temporário original
